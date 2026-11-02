@@ -14,6 +14,8 @@ export interface PermissionReport {
   deviceAdmin: boolean | null;
   /** Android a placé l'application en mode « restreint » (batterie). */
   backgroundRestricted: boolean | null;
+  /** Écran de blocage du mode perdu autorisé. */
+  lockScreen: boolean | null;
 }
 
 export async function permissionReport(): Promise<PermissionReport> {
@@ -29,6 +31,7 @@ export async function permissionReport(): Promise<PermissionReport> {
     batteryUnrestricted: RetrouveNative ? RetrouveNative.isIgnoringBatteryOptimizations() : null,
     deviceAdmin: RetrouveNative ? RetrouveNative.isAdminActive() : null,
     backgroundRestricted: RetrouveNative ? RetrouveNative.isBackgroundRestricted() : null,
+    lockScreen: RetrouveNative ? RetrouveNative.canDrawOverlays() : null,
   };
 }
 

@@ -22,10 +22,12 @@ export function CommandsPanel({ device, onChange }: { device: DeviceDTO; onChang
     setBusy(type);
     setMessage(null);
     try {
-      const res = await api<{ wakeUp: "sent" | "no-token" | "failed" }>(`/api/devices/${device.id}/commands`, {
+      const res = await api<{ wakeUp: "sent" | "no-token" | "failed"; unlockCode: string | null }>(`/api/devices/${device.id}/commands`, {
         body: { type, ...extra },
       });
-      const label = `Commande « ${LABELS.command[type]} » envoyée.`;
+      const label =
+        `Commande « ${LABELS.command[type]} » envoyée.` +
+        (res.unlockCode ? ` Code de déblocage du téléphone : ${res.unlockCode} (gardez-le, il est aussi affiché sur cette page).` : "");
       setMessage(
         res.wakeUp === "sent"
           ? { tone: "green", text: `${label} Réveil instantané envoyé au téléphone : elle devrait s'exécuter dans quelques secondes.` }
@@ -130,7 +132,9 @@ function LostModeDialog({ open, device, onClose, onSend }: { open: boolean; devi
     <Modal title="Activer le mode perdu" open={open} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         <p className="text-sm text-muted">
-          L&apos;appareil affichera ce message en plein écran et enverra sa position chaque minute.
+          Le téléphone sera <b>bloqué par l&apos;écran Retrouve</b> (par-dessus toutes les applications, même après un
+          redémarrage) avec ce message. Seul le <b>code de déblocage</b> affiché ensuite sur ce site pourra le débloquer. Il
+          enverra sa position chaque minute.
         </p>
         <Field label="Message affiché">
           <Input name="message" defaultValue={device.lostMessage ?? "Ce téléphone a été perdu. Merci d'appeler son propriétaire."} maxLength={300} />

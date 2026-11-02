@@ -49,6 +49,7 @@ export function toDeviceDTO(
     instantWakeUp: !!d.pushToken,
     trackingIntervalSec: d.trackingIntervalSec,
     live: !!d.liveUntil && d.liveUntil > new Date(),
+    unlockCode: access !== "VIEWER" && d.lostMode ? d.unlockCode : null,
     access,
     ownerName: d.user?.name ?? "",
     lastLocation: lastLocation ? toLocationDTO(lastLocation) : null,

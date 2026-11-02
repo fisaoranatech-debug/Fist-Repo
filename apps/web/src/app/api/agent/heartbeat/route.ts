@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { heartbeatSchema, TRACKING_INTERVAL_SEC, type AgentState } from "@retrouve/shared";
 import { createAlerts, type NewAlert } from "@/lib/alerts";
 import { requireAgent } from "@/lib/auth";
+import { unlockHash } from "@/lib/crypto";
 import { prisma } from "@/lib/db";
 import { json, readJson, route } from "@/lib/http";
 
@@ -71,6 +72,7 @@ export const POST = route(async (req) => {
     smsSecret: updated.smsSecret,
     pendingCommands: pending,
     intervalSec: trackingInterval(updated),
+    lockHash: updated.lostMode && updated.unlockCode ? unlockHash(updated.id, updated.unlockCode) : null,
   };
   return json(state);
 });

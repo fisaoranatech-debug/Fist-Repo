@@ -156,6 +156,14 @@ export default function HomeScreen() {
                 }
               />
             )}
+            {perms?.lockScreen !== null && (
+              <StatusRow
+                ok={perms?.lockScreen ?? null}
+                label="Écran de blocage (mode perdu)"
+                detail={perms?.lockScreen ? "Activé : en mode perdu, seul le code du site débloque le téléphone" : "Non activé : autorisez « Afficher par-dessus d'autres applications »"}
+                action={!perms?.lockScreen ? <Button label="Activer" variant="secondary" onPress={() => RetrouveNative?.requestOverlayPermission()} /> : undefined}
+              />
+            )}
             {perms?.deviceAdmin !== null && (
               <StatusRow ok={perms?.deviceAdmin ?? null} label="Anti-vol (verrouillage / effacement)" detail={perms?.deviceAdmin ? "Activé" : "Non activé (facultatif)"} />
             )}

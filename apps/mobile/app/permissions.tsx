@@ -118,6 +118,9 @@ export default function PermissionsScreen() {
               <StatusRow ok={report?.deviceAdmin ?? null} label="Administrateur de l'appareil"
                 detail="Verrouiller ou effacer à distance, alerte après 2 mauvais codes."
                 action={!report?.deviceAdmin ? <Button label="Activer" variant="secondary" onPress={() => RetrouveNative?.requestAdmin()} /> : undefined} />
+              <StatusRow ok={report?.lockScreen ?? null} label="Écran de blocage (mode perdu)"
+                detail="Bloque le téléphone par-dessus toutes les applications ; seul le code affiché sur le site le débloque. Activez « Afficher par-dessus d'autres applications »."
+                action={!report?.lockScreen ? <Button label="Activer" variant="secondary" onPress={() => RetrouveNative?.requestOverlayPermission()} /> : undefined} />
               <StatusRow ok={sms} label="Commandes par SMS"
                 detail="Retrouver le téléphone sans internet (LOCATE + code secret défini sur le site)."
                 action={!sms ? <Button label="Autoriser" variant="secondary" onPress={askSms} /> : undefined} />

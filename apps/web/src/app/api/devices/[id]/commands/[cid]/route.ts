@@ -18,7 +18,7 @@ export const DELETE = route<Ctx>(async (req, { params }) => {
   const updated = await prisma.$transaction(async (tx) => {
     // Annuler l'activation du mode perdu : l'état voulu redevient « pas perdu ».
     if (cmd.type === "LOST_MODE_ON" && device.lostMode) {
-      await tx.device.update({ where: { id }, data: { lostMode: false } });
+      await tx.device.update({ where: { id }, data: { lostMode: false, unlockCode: null } });
     }
     return tx.command.update({
       where: { id: cid },

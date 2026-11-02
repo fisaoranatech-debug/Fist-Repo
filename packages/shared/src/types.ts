@@ -41,6 +41,8 @@ export interface DeviceDTO {
   trackingIntervalSec: number;
   /** Suivi en direct en cours (positions toutes les 15 s). */
   live: boolean;
+  /** Code de déblocage du mode perdu (propriétaire et contrôleurs uniquement). */
+  unlockCode: string | null;
   /** Rôle de l'utilisateur courant sur cet appareil. */
   access: "OWNER" | ShareRole;
   ownerName: string;
@@ -120,6 +122,11 @@ export interface AgentState {
   pendingCommands: number;
   /** Intervalle conseillé entre deux positions, en secondes. */
   intervalSec: number;
+  /**
+   * Empreinte SHA-256 de « deviceId:code » du code de déblocage (mode perdu).
+   * Si présente, le téléphone affiche l'écran de blocage Retrouve.
+   */
+  lockHash: string | null;
 }
 
 /** Intervalles d'envoi des positions. */

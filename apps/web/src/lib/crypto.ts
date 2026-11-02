@@ -18,3 +18,8 @@ export function safeEqual(a: string, b: string): boolean {
   const bb = Buffer.from(b);
   return ba.length === bb.length && timingSafeEqual(ba, bb);
 }
+
+/** Empreinte du code de déblocage, vérifiable par le téléphone sans connaître le code. */
+export function unlockHash(deviceId: string, code: string): string {
+  return createHash("sha256").update(`${deviceId}:${code}`).digest("hex");
+}

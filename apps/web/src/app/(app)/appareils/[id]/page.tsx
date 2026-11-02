@@ -106,6 +106,16 @@ export default function DevicePage() {
         </div>
       )}
 
+      {device.lostMode && device.unlockCode && (
+        <div className="mb-4">
+          <Alert tone="blue">
+            🔐 Code de déblocage du téléphone : <b data-testid="unlock-code" className="font-mono text-lg tracking-widest">{device.unlockCode}</b>
+            <br />
+            Si vous retrouvez le téléphone, tapez ce code sur son écran de blocage (ou cliquez sur « ✅ Retrouvé »).
+          </Alert>
+        </div>
+      )}
+
       {device.lostMode && (
         <div className="mb-4">
           <Alert>

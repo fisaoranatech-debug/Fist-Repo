@@ -14,6 +14,9 @@ export interface RetrouveNativeModule {
   getAgentStatus(): string;
   syncNow(forceLocate: boolean): Promise<string>;
   isBackgroundRestricted(): boolean;
+  /** Autorisation « Afficher par-dessus d'autres applications » (écran de blocage du mode perdu). */
+  canDrawOverlays(): boolean;
+  requestOverlayPermission(): void;
   /** Ouvre l'écran « démarrage automatique » du fabricant (sinon les réglages de l'app). */
   openAutostartSettings(): boolean;
   isAdminActive(): boolean;

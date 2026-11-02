@@ -73,6 +73,15 @@ class RetrouveNativeModule : Module() {
 
     Function("isBackgroundRestricted") { AgentCore.isBackgroundRestricted(context) }
 
+    // ----- Écran de blocage du mode perdu -----
+    Function("canDrawOverlays") { LockOverlay.canDraw(context) }
+
+    Function("requestOverlayPermission") {
+      val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      (appContext.currentActivity ?: context).startActivity(intent)
+    }
+
     /** Ouvre l'écran « démarrage automatique » du fabricant (Tecno, Infinix, Xiaomi, Oppo…) si possible. */
     Function("openAutostartSettings") {
       val candidates = listOf(

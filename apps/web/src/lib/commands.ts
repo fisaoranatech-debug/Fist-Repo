@@ -3,6 +3,7 @@ import { SENSITIVE_COMMANDS, type CommandCreateInput } from "@retrouve/shared";
 import { prisma } from "./db";
 import { forbidden, HttpError } from "./http";
 import { verifyPassword } from "./password";
+import { generatePairingCode, unlockHash } from "./crypto";
 import { sendWakeUpPush } from "./push";
 
 /** Crée une commande pour un appareil et tente de le réveiller par push. */
@@ -20,9 +21,13 @@ export async function createCommand(device: Device, user: User, input: CommandCr
   }
 
   const payload: Prisma.JsonObject = {};
+  let unlockCode: string | null = null;
   if (input.type === "LOST_MODE_ON") {
     payload.message = input.message || device.lostMessage || "Ce téléphone a été perdu. Merci d'appeler son propriétaire.";
     payload.contactPhone = input.contactPhone || user.contactPhone || "";
+    // Nouveau code de déblocage à chaque activation ; le téléphone ne reçoit que son empreinte.
+    unlockCode = generatePairingCode();
+    payload.lockHash = unlockHash(device.id, unlockCode);
   }
   if (input.type === "LOCK") {
     if (input.pin) payload.pin = input.pin;
@@ -38,10 +43,10 @@ export async function createCommand(device: Device, user: User, input: CommandCr
     if (input.type === "LOST_MODE_ON") {
       await tx.device.update({
         where: { id: device.id },
-        data: { lostMode: true, lostMessage: payload.message as string },
+        data: { lostMode: true, lostMessage: payload.message as string, unlockCode },
       });
     } else if (input.type === "LOST_MODE_OFF") {
-      await tx.device.update({ where: { id: device.id }, data: { lostMode: false } });
+      await tx.device.update({ where: { id: device.id }, data: { lostMode: false, unlockCode: null } });
     }
     return tx.command.create({
       data: {
@@ -54,5 +59,5 @@ export async function createCommand(device: Device, user: User, input: CommandCr
   });
 
   const wakeUp = await sendWakeUpPush(device, { kind: "command", commandId: command.id, type: command.type });
-  return { command, wakeUp };
+  return { command, wakeUp, unlockCode };
 }

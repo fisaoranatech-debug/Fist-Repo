@@ -99,6 +99,8 @@ class AgentService : Service() {
       return START_NOT_STICKY
     }
     running = true
+    // Mode perdu : l'écran de blocage revient tout de suite (après un redémarrage, sans réseau…).
+    LockOverlay.restore(this)
     when (intent?.action) {
       ACTION_SYNC -> handler.post { syncWithWakeLock(null, intent.getBooleanExtra("locate", false)) }
       ACTION_RECONFIGURE -> handler.post {

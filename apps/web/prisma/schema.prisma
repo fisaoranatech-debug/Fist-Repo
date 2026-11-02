@@ -131,6 +131,8 @@ model Device {
   /// Suivi en direct (positions toutes les 15 s) tant que quelqu'un regarde la fiche sur le site.
   liveUntil    DateTime?
   lostMessage  String?
+  /// Code de déblocage de l'écran Retrouve en mode perdu (visible par le propriétaire).
+  unlockCode   String?
   offlineAlertedAt DateTime?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt

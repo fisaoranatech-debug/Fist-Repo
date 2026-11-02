@@ -161,6 +161,7 @@ internal object AgentCore {
 
   fun capabilities(context: Context): List<String> {
     val caps = mutableListOf("ring", "lostMode", "locate", "nativeAgent")
+    if (LockOverlay.canDraw(context)) caps.add("lockScreen")
     val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
     if (dpm.isAdminActive(AdminReceiver.component(context))) caps.add("deviceAdmin")
     if (context.checkSelfPermission(Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED) caps.add("sms")
@@ -186,12 +187,19 @@ internal object AgentCore {
       .putString("smsSecret", state.optString("smsSecret").takeIf { it.isNotEmpty() && it != "null" })
       .putString("contactPhone", state.optString("contactPhone").takeIf { it.isNotEmpty() && it != "null" })
       .apply()
+    val lockHash = state.optString("lockHash").takeIf { it.isNotEmpty() && it != "null" }
+    val deviceId = state.optString("deviceId")
+    prefs.edit().putString("deviceId", deviceId).putString("lockHash", lockHash).apply()
     if (lost) {
       val msg = state.optString("lostMessage").takeIf { it.isNotEmpty() && it != "null" }
         ?: "Ce téléphone a été perdu. Merci de contacter son propriétaire."
       showLostNotification(context, msg, Prefs.contactPhone(context))
+      if (lockHash != null && lockHash != prefs.getString("unlockedFor", null)) {
+        LockOverlay.show(context, deviceId, lockHash, msg, Prefs.contactPhone(context))
+      }
     } else {
       hideLostNotification(context)
+      LockOverlay.hide(context)
     }
     if (previousInterval != interval) AgentService.reconfigure(context)
   }
@@ -228,12 +236,24 @@ internal object AgentCore {
             val phone = payload?.optString("contactPhone")?.takeIf { it.isNotEmpty() } ?: Prefs.contactPhone(context)
             Prefs.get(context).edit().putBoolean("lostMode", true).putInt("intervalSec", 60).apply()
             showLostNotification(context, msg, phone)
+            // Écran de blocage Retrouve + verrouillage du téléphone (si l'anti-vol est activé).
+            payload?.optString("lockHash")?.takeIf { it.isNotEmpty() }?.let { hash ->
+              LockOverlay.show(context, Prefs.get(context).getString("deviceId", "") ?: "", hash, msg, phone)
+            }
+            val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            if (dpm.isAdminActive(AdminReceiver.component(context))) {
+              try {
+                dpm.lockNow()
+              } catch (_: Exception) {
+              }
+            }
             AgentService.reconfigure(context)
             null
           }
           "LOST_MODE_OFF" -> {
             Prefs.get(context).edit().putBoolean("lostMode", false).putInt("intervalSec", 300).apply()
             hideLostNotification(context)
+            LockOverlay.hide(context)
             AgentService.reconfigure(context)
             null
           }
