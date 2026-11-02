@@ -20,16 +20,13 @@ function checkSameOrigin(req: Request) {
   }
 }
 
-export async function currentUserId(req: Request): Promise<string | null> {
-  return verifySession(readCookie(req.headers.get("cookie"), SESSION_COOKIE));
-}
-
 export async function requireUser(req: Request): Promise<User> {
   checkSameOrigin(req);
-  const id = await currentUserId(req);
-  if (!id) throw unauthorized();
-  const user = await prisma.user.findUnique({ where: { id } });
-  if (!user) throw unauthorized();
+  const session = await verifySession(readCookie(req.headers.get("cookie"), SESSION_COOKIE));
+  if (!session) throw unauthorized();
+  const user = await prisma.user.findUnique({ where: { id: session.userId } });
+  // Session révoquée (mot de passe changé depuis) ou compte supprimé.
+  if (!user || user.sessionVersion !== session.sv) throw unauthorized();
   return user;
 }
 

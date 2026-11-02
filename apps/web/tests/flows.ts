@@ -8,7 +8,7 @@ let n = 0;
 export async function newUser(name = "Nyavo") {
   n++;
   const r = await call(register.POST, {
-    body: { name, email: `user${n}-${Date.now()}@exemple.mg`, password: "motdepasse123", contactPhone: "+261 34 00 000 00" },
+    body: { name, email: `user${n}-${Date.now()}@exemple.mg`, password: "motdepasse123", contactPhone: "+261 34 00 000 00", acceptTerms: true },
   });
   if (r.status !== 201) throw new Error(JSON.stringify(r.data));
   return { cookie: cookieFrom(r.res), user: r.data as { id: string; email: string }, password: "motdepasse123" };

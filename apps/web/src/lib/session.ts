@@ -4,8 +4,14 @@ import { authSecret, isProduction } from "./env";
 export const SESSION_COOKIE = "retrouve_session";
 const MAX_AGE_SEC = 60 * 60 * 24 * 30; // 30 jours
 
-export async function signSession(userId: string): Promise<string> {
-  return new SignJWT({})
+export interface Session {
+  userId: string;
+  /** Version de session : doit correspondre à User.sessionVersion. */
+  sv: number;
+}
+
+export async function signSession(userId: string, sessionVersion = 0): Promise<string> {
+  return new SignJWT({ sv: sessionVersion })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(userId)
     .setIssuedAt()
@@ -13,12 +19,13 @@ export async function signSession(userId: string): Promise<string> {
     .sign(authSecret());
 }
 
-/** Renvoie l'id utilisateur si le jeton est valide, sinon null. */
-export async function verifySession(token: string | undefined | null): Promise<string | null> {
+/** Renvoie la session si le jeton est valide (signature et date), sinon null. */
+export async function verifySession(token: string | undefined | null): Promise<Session | null> {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, authSecret(), { algorithms: ["HS256"] });
-    return typeof payload.sub === "string" ? payload.sub : null;
+    if (typeof payload.sub !== "string") return null;
+    return { userId: payload.sub, sv: typeof payload.sv === "number" ? payload.sv : 0 };
   } catch {
     return null;
   }

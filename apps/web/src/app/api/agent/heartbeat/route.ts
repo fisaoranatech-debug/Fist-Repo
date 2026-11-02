@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { heartbeatSchema, TRACKING_INTERVAL_SEC, type AgentState } from "@retrouve/shared";
+import { createAlerts, type NewAlert } from "@/lib/alerts";
 import { requireAgent } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { json, readJson, route } from "@/lib/http";
@@ -23,7 +24,7 @@ export const POST = route(async (req) => {
   if (hb.model && !device.model) data.model = hb.model;
   if (hb.capabilities) data.capabilities = hb.capabilities;
 
-  const alerts: Prisma.AlertCreateManyInput[] = [];
+  const alerts: NewAlert[] = [];
   // Changement de carte SIM / d'opérateur (code pays MCC + code réseau MNC).
   const simKnown = device.mcc && device.mnc;
   const simNow = hb.mcc && hb.mnc;
@@ -51,7 +52,7 @@ export const POST = route(async (req) => {
     prisma.device.update({ where: { id: device.id }, data }),
     prisma.command.count({ where: { deviceId: device.id, status: { in: ["PENDING", "SENT"] } } }),
     prisma.user.findUnique({ where: { id: device.userId }, select: { contactPhone: true } }),
-    alerts.length ? prisma.alert.createMany({ data: alerts }) : Promise.resolve(null),
+    alerts.length ? createAlerts(alerts) : Promise.resolve(null),
   ]);
 
   const state: AgentState = {

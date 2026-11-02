@@ -6,6 +6,8 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  /// Connexion directe (sans pooler) utilisée par les migrations (Neon).
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 enum DeviceType {
@@ -59,11 +61,44 @@ model User {
   passwordHash String
   name         String
   contactPhone String?
+  /// Incrémenté à chaque changement de mot de passe : invalide les anciennes sessions.
+  sessionVersion  Int       @default(0)
+  emailAlerts     Boolean   @default(true)
+  termsAcceptedAt DateTime?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   devices      Device[]
   pairingCodes PairingCode[]
   shares       DeviceShare[]
+  resetTokens  PasswordResetToken[]
+  pushSubscriptions PushSubscription[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// SHA-256 du jeton envoyé par email.
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+/// Abonnement aux notifications du navigateur (web push).
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Device {

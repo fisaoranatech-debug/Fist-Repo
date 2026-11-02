@@ -15,6 +15,6 @@ export const POST = route(async (req) => {
   }
   await resetRateLimit(key);
   const res = json({ id: user.id, name: user.name, email: user.email });
-  res.headers.append("Set-Cookie", sessionCookieHeader(await signSession(user.id)));
+  res.headers.append("Set-Cookie", sessionCookieHeader(await signSession(user.id, user.sessionVersion)));
   return res;
 });

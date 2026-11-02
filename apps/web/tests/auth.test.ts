@@ -10,30 +10,30 @@ resetDb();
 describe("comptes", () => {
   it("inscription, connexion et profil", async () => {
     const r = await call(register.POST, {
-      body: { name: "Rasoa", email: "Rasoa@Exemple.mg", password: "motdepasse123" },
+      body: { name: "Rasoa", email: "Rasoa@Exemple.mg", password: "motdepasse123", acceptTerms: true },
     });
     expect(r.status).toBe(201);
     expect(r.res.headers.get("set-cookie")).toContain("HttpOnly");
 
-    const l = await call(login.POST, { body: { email: "rasoa@exemple.mg", password: "motdepasse123" } });
+    const l = await call(login.POST, { body: { email: "rasoa@exemple.mg", password: "motdepasse123", acceptTerms: true } });
     expect(l.status).toBe(200);
     const m = await call(me.GET, { cookie: cookieFrom(l.res) });
     expect(m.data.email).toBe("rasoa@exemple.mg");
   });
 
   it("refuse un email déjà utilisé", async () => {
-    const body = { name: "A", email: "a@exemple.mg", password: "motdepasse123" };
+    const body = { name: "A", email: "a@exemple.mg", password: "motdepasse123", acceptTerms: true };
     await call(register.POST, { body });
     expect((await call(register.POST, { body })).status).toBe(409);
   });
 
   it("refuse un mauvais mot de passe puis bloque après trop d'essais", async () => {
-    await call(register.POST, { body: { name: "B", email: "b@exemple.mg", password: "motdepasse123" } });
+    await call(register.POST, { body: { name: "B", email: "b@exemple.mg", password: "motdepasse123", acceptTerms: true } });
     for (let i = 0; i < 8; i++) {
       const r = await call(login.POST, { body: { email: "b@exemple.mg", password: "faux" } });
       expect(r.status).toBe(401);
     }
-    const blocked = await call(login.POST, { body: { email: "b@exemple.mg", password: "motdepasse123" } });
+    const blocked = await call(login.POST, { body: { email: "b@exemple.mg", password: "motdepasse123", acceptTerms: true } });
     expect(blocked.status).toBe(429);
   });
 
@@ -45,7 +45,7 @@ describe("comptes", () => {
 
   it("exige une session et rejette les requêtes d'un autre site", async () => {
     expect((await call(devices.GET)).status).toBe(401);
-    const r = await call(register.POST, { body: { name: "C", email: "c@exemple.mg", password: "motdepasse123" } });
+    const r = await call(register.POST, { body: { name: "C", email: "c@exemple.mg", password: "motdepasse123", acceptTerms: true } });
     const cross = await call(devices.POST, {
       cookie: cookieFrom(r.res),
       body: { name: "x" },
@@ -57,5 +57,13 @@ describe("comptes", () => {
   it("refuse un jeton de session falsifié", async () => {
     const r = await call(me.GET, { cookie: "retrouve_session=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4In0.faux" });
     expect(r.status).toBe(401);
+  });
+});
+
+describe("conditions d'utilisation", () => {
+  it("refuse l'inscription sans accepter les conditions", async () => {
+    const r = await call(register.POST, { body: { name: "D", email: "d@exemple.mg", password: "motdepasse123" } });
+    expect(r.status).toBe(400);
+    expect(r.data.details.acceptTerms[0]).toMatch(/accepter les conditions/);
   });
 });

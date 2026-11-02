@@ -5,6 +5,6 @@ export default function setup() {
     process.env.TEST_DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:5432/retrouve_test";
   execSync("npx prisma migrate deploy", {
     stdio: "inherit",
-    env: { ...process.env, DATABASE_URL: url },
+    env: { ...process.env, DATABASE_URL: url, DATABASE_URL_UNPOOLED: url },
   });
 }

@@ -16,9 +16,10 @@ export const POST = route(async (req) => {
       name: input.name,
       contactPhone: input.contactPhone || null,
       passwordHash: await hashPassword(input.password),
+      termsAcceptedAt: new Date(),
     },
   });
   const res = json({ id: user.id, name: user.name, email: user.email }, 201);
-  res.headers.append("Set-Cookie", sessionCookieHeader(await signSession(user.id)));
+  res.headers.append("Set-Cookie", sessionCookieHeader(await signSession(user.id, user.sessionVersion)));
   return res;
 });

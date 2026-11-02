@@ -190,3 +190,33 @@ describe("tâches planifiées", () => {
     expect((await call(offline.GET, { headers: h })).data.alerted).toBe(0);
   });
 });
+
+describe("alertes par email", () => {
+  it("prévient le propriétaire et la famille, respecte les préférences et l'anti-spam", async () => {
+    const { sentMails } = await import("@/lib/mail");
+    const shares = await import("@/app/api/devices/[id]/shares/route");
+    const meRoute = await import("@/app/api/auth/me/route");
+    const owner = await newUser("Papa");
+    const mum = await newUser("Maman");
+    const kid = await newUser("Enfant");
+    const { deviceId, token } = await newPairedDevice(owner.cookie);
+    for (const u of [mum, kid]) {
+      await call(shares.POST, { cookie: owner.cookie, params: { id: deviceId }, body: { email: u.user.email } });
+    }
+    await call(meRoute.PATCH, { method: "PATCH", cookie: kid.cookie, body: { emailAlerts: false } });
+    sentMails().length = 0;
+
+    await call(heartbeat.POST, { token, body: { mcc: "646", mnc: "02", carrierName: "Orange" } });
+    await call(heartbeat.POST, { token, body: { mcc: "646", mnc: "04", carrierName: "Telma" } });
+    const recipients = sentMails().map((m) => m.to).sort();
+    expect(recipients).toEqual([mum.user.email, owner.user.email].sort());
+    expect(sentMails()[0]!.subject).toMatch(/Carte SIM ou opérateur changé : Mon Samsung/);
+    expect(sentMails()[0]!.text).toMatch(/Orange → Telma/);
+    expect(sentMails()[0]!.text).toMatch(/\/appareils\//);
+
+    // Nouveau changement 1 minute plus tard : alerte enregistrée, mais pas de nouvel email.
+    await call(heartbeat.POST, { token, body: { mcc: "646", mnc: "01", carrierName: "Airtel" } });
+    expect(sentMails()).toHaveLength(2);
+    expect(await prisma.alert.count({ where: { type: "SIM_CHANGED" } })).toBe(2);
+  });
+});

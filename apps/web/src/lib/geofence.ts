@@ -1,4 +1,5 @@
 import { isInsideGeofence } from "@retrouve/shared";
+import { createAlerts } from "./alerts";
 import { prisma } from "./db";
 
 /** Compare la dernière position aux zones de l'appareil et crée une alerte à la sortie. */
@@ -9,13 +10,13 @@ export async function evaluateGeofences(deviceId: string, point: { lat: number; 
     if (fence.inside === inside) continue;
     await prisma.geofence.update({ where: { id: fence.id }, data: { inside } });
     if (fence.inside === true && !inside) {
-      await prisma.alert.create({
-        data: {
+      await createAlerts([
+        {
           deviceId,
           type: "GEOFENCE_EXIT",
           data: { geofenceId: fence.id, zone: fence.name, lat: point.lat, lng: point.lng },
         },
-      });
+      ]);
     }
   }
 }
