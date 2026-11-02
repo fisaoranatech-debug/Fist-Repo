@@ -11,6 +11,8 @@
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
   <!-- Écran de blocage du mode perdu (par-dessus les autres applications). -->
   <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+  <!-- Mise à jour intégrée : installer la nouvelle version téléchargée. -->
+  <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
   <application>
     <!-- Administrateur de l'appareil : verrouiller, effacer, compter les mauvais codes. -->
@@ -34,6 +36,13 @@
       android:exported="false"
       android:foregroundServiceType="location"
       android:stopWithTask="false" />
+
+    <!-- Mise à jour intégrée : partage de l'APK téléchargé avec l'installateur. -->
+    <provider
+      android:name="mg.retrouve.nativemodule.UpdateFileProvider"
+      android:authorities="${applicationId}.retrouve.updates"
+      android:exported="false"
+      android:grantUriPermissions="true" />
 
     <!-- Relance après redémarrage du téléphone ou mise à jour de l'application. -->
     <receiver

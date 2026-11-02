@@ -73,6 +73,40 @@ class RetrouveNativeModule : Module() {
 
     Function("isBackgroundRestricted") { AgentCore.isBackgroundRestricted(context) }
 
+    // ----- Mise à jour intégrée -----
+    Function("getAppVersionCode") { Updater.currentVersionCode(context).toInt() }
+    Function("canInstallPackages") { Updater.canInstall(context) }
+    Function("getUpdateProgress") { Updater.progress }
+
+    Function("openInstallPermissionSettings") {
+      val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
+      } else {
+        Intent(Settings.ACTION_SECURITY_SETTINGS)
+      }
+      (appContext.currentActivity ?: context).startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    /** Télécharge la nouvelle version, vérifie son empreinte puis ouvre l'installateur. Renvoie ok / checksum / error:… */
+    AsyncFunction("downloadAndInstall") { apkUrl: String, sha256: String, promise: Promise ->
+      Thread {
+        try {
+          val file = Updater.download(context, apkUrl)
+          if (sha256.isNotEmpty() && !Updater.sha256(file).equals(sha256, ignoreCase = true)) {
+            file.delete()
+            Updater.progress = -1
+            promise.resolve("checksum")
+          } else {
+            Updater.install(context)
+            promise.resolve("ok")
+          }
+        } catch (e: Exception) {
+          Updater.progress = -1
+          promise.resolve("error:" + (e.message ?: e.toString()))
+        }
+      }.start()
+    }
+
     // ----- Écran de blocage du mode perdu -----
     Function("canDrawOverlays") { LockOverlay.canDraw(context) }
 

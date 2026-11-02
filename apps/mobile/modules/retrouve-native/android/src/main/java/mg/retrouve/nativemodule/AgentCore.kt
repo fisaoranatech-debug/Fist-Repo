@@ -99,6 +99,10 @@ internal object AgentCore {
         val state = JSONObject(ApiClient.request(ctx, "POST", "/api/agent/heartbeat", heartbeatBody(ctx)))
         applyState(ctx, state)
         if (state.optInt("pendingCommands", 0) > 0) runCommands(ctx)
+        try {
+          Updater.maybeNotify(ctx)
+        } catch (_: Exception) {
+        }
         prefs.edit()
           .putLong("lastSyncAt", System.currentTimeMillis())
           .putBoolean("lastSyncOk", true)

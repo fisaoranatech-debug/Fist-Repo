@@ -7,6 +7,7 @@ import { sync } from "../src/agent";
 import { clearQueue, sqliteQueue } from "../src/db";
 import { autostartHelp, confirmAutostart, isAutostartConfirmed } from "../src/autostart";
 import { parseNativeStatus, RetrouveNative } from "../src/native";
+import { UpdateBanner } from "../src/UpdateBanner";
 import { hideLostModeNotification } from "../src/notifications";
 import {
   clearCredentials,
@@ -105,6 +106,8 @@ export default function HomeScreen() {
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} refreshControl={<RefreshControl refreshing={busy} onRefresh={syncNow} />}>
           <Title>{creds?.name ?? "Retrouve"}</Title>
 
+          <UpdateBanner />
+
           <View style={{ borderRadius: 20, padding: 20, backgroundColor: protectedOk ? t.success : t.warning, gap: 6 }}>
             <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800" }}>
               {status?.revoked ? "Appareil dissocié" : protectedOk ? "✓ Protection active" : "⚠ Protection incomplète"}
@@ -182,6 +185,8 @@ export default function HomeScreen() {
               famille avec qui il est partagé. La notification « Retrouve protège cet appareil » reste affichée tant que la protection est active.
             </Body>
           </Card>
+
+          <UpdateBanner manual />
 
           <Button label="Dissocier ce téléphone" variant="secondary" onPress={unpair} />
         </ScrollView>

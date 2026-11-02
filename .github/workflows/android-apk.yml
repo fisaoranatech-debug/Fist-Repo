@@ -90,6 +90,21 @@ jobs:
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk retrouve.apk
           ls -lh retrouve.apk
+          # Fichier lu par la mise à jour intégrée de l'application.
+          node -e '
+            const fs = require("fs"), crypto = require("crypto"), { execSync } = require("child_process");
+            const sha256 = crypto.createHash("sha256").update(fs.readFileSync("retrouve.apk")).digest("hex");
+            const notes = execSync("git log -1 --pretty=%s").toString().trim();
+            fs.writeFileSync("version.json", JSON.stringify({
+              versionCode: Number(process.env.ANDROID_VERSION_CODE),
+              notes,
+              sha256,
+              size: fs.statSync("retrouve.apk").size,
+              apkUrl: "https://github.com/" + process.env.GITHUB_REPOSITORY + "/releases/download/android-latest/retrouve.apk",
+              builtAt: new Date().toISOString(),
+            }, null, 2));
+          '
+          cat version.json
 
       - uses: actions/upload-artifact@v4
         with:
@@ -109,3 +124,5 @@ jobs:
           else
             gh release create android-latest retrouve.apk --title "Retrouve pour Android" --notes "$NOTES" --target "$GITHUB_SHA" --latest
           fi
+          # En dernier : l'application ne voit la nouvelle version qu'une fois l'APK complètement publié.
+          gh release upload android-latest version.json --clobber

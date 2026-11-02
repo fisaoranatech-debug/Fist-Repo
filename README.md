@@ -93,6 +93,12 @@ Rien à installer sur un ordinateur. À chaque modification de l'application, Gi
 
 On peut aussi relancer une construction à la main : onglet **Actions → APK Android → Run workflow**.
 
+**Mises à jour depuis l'application** : une fois cette version installée, plus besoin de revenir sur cette page.
+- L'application vérifie les nouvelles versions à chaque ouverture, et toutes les 12 h en arrière-plan avec une notification.
+- Touchez **« Mettre à jour »**, puis **« Installer »** quand Android le demande. Cette confirmation est obligatoire pour une application installée hors du Play Store.
+- La première fois, autorisez Retrouve à « Installer des applications inconnues ».
+- Le fichier téléchargé est vérifié (empreinte SHA-256 publiée dans `version.json`) avant l'installation.
+
 > L'APK est signé avec la clé fixe du modèle Expo : c'est suffisant pour un usage familial, et les mises à jour s'installent par-dessus. Pour signer avec votre propre clé, ajoutez dans GitHub (Settings → Secrets and variables → Actions) `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` et `ANDROID_KEY_PASSWORD`. Attention : changer de clé oblige à désinstaller l'ancienne version une fois.
 
 ### Autre possibilité : EAS Build (Expo), depuis un ordinateur

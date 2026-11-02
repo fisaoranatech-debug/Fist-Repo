@@ -14,6 +14,14 @@ export interface RetrouveNativeModule {
   getAgentStatus(): string;
   syncNow(forceLocate: boolean): Promise<string>;
   isBackgroundRestricted(): boolean;
+  /** Mise à jour intégrée. */
+  getAppVersionCode(): number;
+  canInstallPackages(): boolean;
+  openInstallPermissionSettings(): void;
+  /** -1 : rien ; 0-100 : téléchargement ; 101 : terminé. */
+  getUpdateProgress(): number;
+  /** "ok" | "checksum" | "error:…" */
+  downloadAndInstall(apkUrl: string, sha256: string): Promise<string>;
   /** Autorisation « Afficher par-dessus d'autres applications » (écran de blocage du mode perdu). */
   canDrawOverlays(): boolean;
   requestOverlayPermission(): void;
