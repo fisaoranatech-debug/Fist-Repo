@@ -79,9 +79,25 @@ npm run simulate -- --email votre@email.mg --password votremotdepasse
 npm run simulate -- --code 123456
 ```
 
-## 2. Construire et installer l'application Android (APK)
+## 2. Obtenir l'application Android (APK)
 
-L'application utilise des fonctions natives (localisation en arrière-plan, administrateur de l'appareil, SMS). Elle ne fonctionne donc **pas dans Expo Go** : il faut construire un APK. Le plus simple est **EAS Build**, le service de construction d'Expo, gratuit avec un compte Expo.
+### Le plus simple : télécharger l'APK construit par GitHub
+
+Rien à installer sur un ordinateur. À chaque modification de l'application, GitHub Actions (`.github/workflows/android-apk.yml`) construit l'APK et le publie ici :
+
+**https://github.com/fisaoranatech-debug/Fist-Repo/releases/tag/android-latest**
+
+1. Ouvrez ce lien **sur le téléphone** et touchez `retrouve.apk`.
+2. Installez-le. Si Android le demande, autorisez « Installer des applications inconnues » pour le navigateur.
+3. Pour une mise à jour, téléchargez simplement le nouvel APK et installez-le par-dessus : vos réglages sont conservés.
+
+On peut aussi relancer une construction à la main : onglet **Actions → APK Android → Run workflow**.
+
+> L'APK est signé avec la clé fixe du modèle Expo : c'est suffisant pour un usage familial, et les mises à jour s'installent par-dessus. Pour signer avec votre propre clé, ajoutez dans GitHub (Settings → Secrets and variables → Actions) `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` et `ANDROID_KEY_PASSWORD`. Attention : changer de clé oblige à désinstaller l'ancienne version une fois.
+
+### Autre possibilité : EAS Build (Expo), depuis un ordinateur
+
+L'application utilise des fonctions natives (localisation en arrière-plan, administrateur de l'appareil, SMS). Elle ne fonctionne donc **pas dans Expo Go** : il faut construire un APK. **EAS Build**, le service de construction d'Expo, est gratuit avec un compte Expo. Prévoyez au moins 3 Go d'espace libre, et clonez le projet dans votre dossier personnel (pas dans `C:\Windows\System32`).
 
 ```bash
 cd apps/mobile

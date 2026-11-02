@@ -16,7 +16,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   newArchEnabled: true,
   android: {
     package: "mg.retrouve.app",
-    versionCode: 1,
+    // Incrémenté à chaque construction GitHub Actions pour que les mises à jour s'installent.
+    versionCode: Number(process.env.ANDROID_VERSION_CODE) || 1,
     adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundColor: "#2453e6" },
     permissions: [
       "ACCESS_COARSE_LOCATION",
