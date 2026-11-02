@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import type { AgentState } from "@retrouve/shared";
 import { sync } from "../src/agent";
 import { clearQueue, sqliteQueue } from "../src/db";
+import { autostartHelp, confirmAutostart, isAutostartConfirmed } from "../src/autostart";
 import { parseNativeStatus, RetrouveNative } from "../src/native";
 import { hideLostModeNotification } from "../src/notifications";
 import {
@@ -18,6 +19,10 @@ import {
 } from "../src/storage";
 import { isTracking, permissionReport, stopTracking, type PermissionReport } from "../src/tracking";
 import { Body, Button, Card, Screen, StatusRow, Title, useTheme } from "../src/ui";
+
+function formatInterval(sec: number): string {
+  return sec < 60 ? `${sec} s` : `${Math.round(sec / 60)} min`;
+}
 
 function ago(iso: string | null): string {
   if (!iso) return "jamais";
@@ -38,6 +43,7 @@ export default function HomeScreen() {
   const [queued, setQueued] = useState(0);
   const [alarm, setAlarm] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [autostartOk, setAutostartOk] = useState(false);
 
   const load = useCallback(async () => {
     const c = await loadCredentials();
@@ -51,6 +57,7 @@ export default function HomeScreen() {
     setPerms(await permissionReport());
     setQueued(RetrouveNative ? parseNativeStatus(RetrouveNative.getAgentStatus())?.queued ?? 0 : await sqliteQueue.count());
     setAlarm(RetrouveNative?.isAlarmPlaying() ?? false);
+    setAutostartOk(await isAutostartConfirmed());
   }, []);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
@@ -106,7 +113,9 @@ export default function HomeScreen() {
               {status?.revoked
                 ? "Ce téléphone a été supprimé du compte ou associé ailleurs. Associez-le à nouveau."
                 : protectedOk
-                  ? `Position envoyée toutes les ${Math.round((state?.intervalSec ?? 300) / 60)} min.`
+                  ? (state?.intervalSec ?? 300) <= 15
+                    ? "🔴 Suivi en direct : position envoyée toutes les 15 s."
+                    : `Position envoyée toutes les ${formatInterval(state?.intervalSec ?? 300)}. Commandes reçues en quelques secondes.`
                   : "Vérifiez les autorisations pour que le téléphone reste localisable."}
             </Text>
           </View>
@@ -134,10 +143,17 @@ export default function HomeScreen() {
             )}
             {RetrouveNative && (
               <StatusRow
-                ok={null}
+                ok={autostartOk ? true : null}
                 label="Démarrage automatique"
-                detail="Sur Tecno, Infinix, Xiaomi, Oppo… autorisez Retrouve à démarrer seule, sinon le téléphone l'arrête."
-                action={<Button label="Ouvrir" variant="secondary" onPress={() => RetrouveNative?.openAutostartSettings()} />}
+                detail={autostartOk ? "Confirmé par vous" : autostartHelp()}
+                action={
+                  autostartOk ? undefined : (
+                    <View style={{ gap: 6 }}>
+                      <Button label="Ouvrir" variant="secondary" onPress={() => RetrouveNative?.openAutostartSettings()} />
+                      <Button label="C'est fait" onPress={async () => { await confirmAutostart(true); setAutostartOk(true); }} />
+                    </View>
+                  )
+                }
               />
             )}
             {perms?.deviceAdmin !== null && (

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { LABELS, type DeviceDTO, type GeofenceDTO, type LocationDTO } from "@retrouve/shared";
 import { CommandsPanel } from "@/components/CommandsPanel";
@@ -30,7 +30,21 @@ export default function DevicePage() {
   const [draft, setDraft] = useState<{ lat: number; lng: number; radiusM: number } | null>(null);
   const [tab, setTab] = useState<"infos" | "zones" | "partage" | "association">("infos");
 
-  const { data: device, error, mutate } = useSWR<DeviceDTO>(`/api/devices/${id}`, fetcher, { refreshInterval: 10_000 });
+  const { data: device, error, mutate } = useSWR<DeviceDTO>(`/api/devices/${id}`, fetcher, { refreshInterval: 5_000 });
+
+  // Suivi en direct tant que la page est ouverte et visible : le téléphone envoie sa position toutes les 15 s.
+  useEffect(() => {
+    const ping = () => {
+      if (document.visibilityState === "visible") void api(`/api/devices/${id}/live`, { method: "POST" }).catch(() => {});
+    };
+    ping();
+    const timer = setInterval(ping, 60_000);
+    document.addEventListener("visibilitychange", ping);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", ping);
+    };
+  }, [id]);
   // Arrondi à la minute pour ne pas changer la clé SWR à chaque rendu.
   const from = new Date(Math.floor((Date.now() - hours * 3600_000) / 60_000) * 60_000).toISOString();
   const { data: track, mutate: mutateTrack } = useSWR<LocationDTO[]>(
@@ -65,6 +79,7 @@ export default function DevicePage() {
               {!device.paired ? <Badge tone="amber">À associer</Badge> : isOnline(device.lastSeenAt) ? <Badge tone="green">● En ligne</Badge> : <Badge>Vu {timeAgo(device.lastSeenAt)}</Badge>}
               <BatteryBadge level={device.battery} charging={device.charging} />
               {device.carrierName && <Badge>📶 {device.carrierName}</Badge>}
+              {device.live && <Badge tone="red">🔴 En direct (toutes les 15 s)</Badge>}
               {device.capabilities.includes("bgRestricted") && (
                 <Badge tone="red">⚠️ Restreinte par Android (batterie)</Badge>
               )}

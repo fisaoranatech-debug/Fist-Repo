@@ -6,6 +6,7 @@ import { AppState, Linking, PermissionsAndroid, Platform, ScrollView } from "rea
 import { SafeAreaView } from "react-native-safe-area-context";
 import { sync } from "../src/agent";
 import { RetrouveNative } from "../src/native";
+import { autostartHelp } from "../src/autostart";
 import { getState } from "../src/storage";
 import { permissionReport, startTracking, type PermissionReport } from "../src/tracking";
 import { Body, Button, Card, Screen, StatusRow, Title } from "../src/ui";
@@ -106,7 +107,7 @@ export default function PermissionsScreen() {
               <StatusRow ok={report?.backgroundRestricted === true ? false : null} label="Démarrage automatique"
                 detail={report?.backgroundRestricted
                   ? "Android a RESTREINT Retrouve : ouvrez les réglages et choisissez « Sans restriction » pour la batterie."
-                  : "Tecno, Infinix, itel, Xiaomi, Oppo… : autorisez le démarrage automatique et verrouillez Retrouve dans les applications récentes."}
+                  : autostartHelp()}
                 action={<Button label="Ouvrir" variant="secondary" onPress={() => { RetrouveNative?.openAutostartSettings(); }} />} />
             )}
           </Card>

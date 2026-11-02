@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { DEVICE_TYPES, LABELS, type DeviceDTO } from "@retrouve/shared";
+import { DEVICE_TYPES, LABELS, TRACKING_INTERVAL_CHOICES, type DeviceDTO } from "@retrouve/shared";
 import { api, ApiError } from "@/lib/api-client";
 import { Alert, Button, Field, Input, Select } from "./ui";
 
@@ -69,6 +69,18 @@ export function DeviceForm({ device, onSaved, submitLabel }: { device?: DeviceDT
           </Field>
         )}
       </div>
+      {device && (
+        <Field
+          label="Fréquence d'envoi de la position"
+          hint="Quand vous ouvrez cette fiche, le suivi passe automatiquement en direct (toutes les 15 s). En mode perdu : chaque minute. Plus c'est fréquent, plus la batterie s'use."
+        >
+          <Select name="trackingIntervalSec" defaultValue={String(device.trackingIntervalSec)}>
+            {TRACKING_INTERVAL_CHOICES.map((s) => (
+              <option key={s} value={s}>Toutes les {s / 60} min{s === 300 ? " (recommandé)" : ""}</option>
+            ))}
+          </Select>
+        </Field>
+      )}
       {device && (
         <Field label="Message du mode perdu" error={fe("lostMessage")} hint="Affiché sur l'écran de l'appareil en mode perdu.">
           <Input name="lostMessage" defaultValue={device.lostMessage ?? ""} placeholder="Ce téléphone a été perdu. Merci d'appeler son propriétaire." />

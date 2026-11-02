@@ -68,7 +68,17 @@ class AgentService : Service() {
   private val poll = object : Runnable {
     override fun run() {
       syncWithWakeLock(null, false)
-      handler.postDelayed(this, if (Prefs.lostMode(this@AgentService)) 30_000L else 60_000L)
+      handler.postDelayed(this, pollDelayMs())
+    }
+  }
+
+  /** Suivi en direct (15 s) : on vérifie aussi souvent ; mode perdu : 30 s ; sinon chaque minute. */
+  private fun pollDelayMs(): Long {
+    val interval = Prefs.intervalSec(this)
+    return when {
+      interval <= 15 -> 15_000L
+      Prefs.lostMode(this) || interval <= 30 -> 30_000L
+      else -> 60_000L
     }
   }
 
@@ -91,7 +101,12 @@ class AgentService : Service() {
     running = true
     when (intent?.action) {
       ACTION_SYNC -> handler.post { syncWithWakeLock(null, intent.getBooleanExtra("locate", false)) }
-      ACTION_RECONFIGURE -> handler.post { registerLocationUpdates() }
+      ACTION_RECONFIGURE -> handler.post {
+        registerLocationUpdates()
+        // Nouveau rythme (ex. suivi en direct) : on relance la boucle tout de suite.
+        handler.removeCallbacks(poll)
+        handler.postDelayed(poll, pollDelayMs())
+      }
       else -> {
         handler.removeCallbacks(poll)
         handler.post { registerLocationUpdates() }
@@ -166,7 +181,8 @@ class AgentService : Service() {
     }
     val providers = buildList {
       if (lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) add(LocationManager.NETWORK_PROVIDER)
-      if (lost || isEmpty()) {
+      // GPS (plus précis) en mode perdu ou en suivi rapproché, ou si le réseau ne donne rien.
+      if (lost || interval <= 60 || isEmpty()) {
         if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) add(LocationManager.GPS_PROVIDER)
       }
       add(LocationManager.PASSIVE_PROVIDER)

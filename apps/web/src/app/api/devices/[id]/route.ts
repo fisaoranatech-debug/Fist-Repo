@@ -34,6 +34,7 @@ export const PATCH = route<Ctx>(async (req, { params }) => {
       ...(input.simNumber !== undefined ? { simNumber: input.simNumber || null } : {}),
       ...(input.lostMessage !== undefined ? { lostMessage: input.lostMessage || null } : {}),
       ...(input.smsSecret !== undefined ? { smsSecret: input.smsSecret || null } : {}),
+      ...(input.trackingIntervalSec !== undefined ? { trackingIntervalSec: input.trackingIntervalSec } : {}),
     },
     include: { user: { select: { name: true } } },
   });

@@ -7,6 +7,13 @@ import { json, readJson, route } from "@/lib/http";
 
 const LOW_BATTERY_THRESHOLD = 15;
 
+/** Suivi en direct > mode perdu > rythme choisi par le propriétaire. */
+function trackingInterval(d: { lostMode: boolean; liveUntil: Date | null; trackingIntervalSec: number }): number {
+  if (d.liveUntil && d.liveUntil > new Date()) return TRACKING_INTERVAL_SEC.live;
+  if (d.lostMode) return TRACKING_INTERVAL_SEC.lost;
+  return d.trackingIntervalSec || TRACKING_INTERVAL_SEC.normal;
+}
+
 /** Battement de cœur : l'appareil envoie son état et reçoit sa configuration. */
 export const POST = route(async (req) => {
   const device = await requireAgent(req);
@@ -63,7 +70,7 @@ export const POST = route(async (req) => {
     contactPhone: owner?.contactPhone ?? null,
     smsSecret: updated.smsSecret,
     pendingCommands: pending,
-    intervalSec: updated.lostMode ? TRACKING_INTERVAL_SEC.lost : TRACKING_INTERVAL_SEC.normal,
+    intervalSec: trackingInterval(updated),
   };
   return json(state);
 });

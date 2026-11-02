@@ -103,6 +103,10 @@ export const deviceCreateSchema = z.object({
 export type DeviceCreateInput = z.infer<typeof deviceCreateSchema>;
 
 export const deviceUpdateSchema = deviceCreateSchema.partial().extend({
+  trackingIntervalSec: z.coerce
+    .number()
+    .refine((v) => [60, 120, 300, 600, 900].includes(v), "Fréquence non autorisée")
+    .optional(),
   lostMessage: z.string().trim().max(300).optional(),
   smsSecret: z
     .string()

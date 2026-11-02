@@ -126,6 +126,10 @@ model Device {
   smsSecret    String?
   lastSeenAt   DateTime?
   lostMode     Boolean        @default(false)
+  /// Intervalle normal entre deux positions (secondes), réglable par le propriétaire.
+  trackingIntervalSec Int     @default(300)
+  /// Suivi en direct (positions toutes les 15 s) tant que quelqu'un regarde la fiche sur le site.
+  liveUntil    DateTime?
   lostMessage  String?
   offlineAlertedAt DateTime?
   createdAt    DateTime       @default(now())

@@ -82,7 +82,10 @@ class RetrouveNativeModule : Module() {
         "com.coloros.safecenter" to "com.coloros.safecenter.permission.startup.StartupAppListActivity",
         "com.oppo.safe" to "com.oppo.safe.permission.startup.StartupAppListActivity",
         "com.vivo.permissionmanager" to "com.vivo.permissionmanager.activity.BgStartUpManagerActivity",
+        "com.huawei.systemmanager" to "com.huawei.systemmanager.appcontrol.activity.StartupAppControlActivity",
         "com.huawei.systemmanager" to "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity",
+        "com.huawei.systemmanager" to "com.huawei.systemmanager.optimize.process.ProtectActivity",
+        "com.hihonor.systemmanager" to "com.hihonor.systemmanager.startupmgr.ui.StartupNormalAppListActivity",
         "com.samsung.android.lool" to "com.samsung.android.sm.battery.ui.BatteryActivity",
       )
       val activity = appContext.currentActivity

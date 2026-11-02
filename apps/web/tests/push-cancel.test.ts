@@ -112,3 +112,32 @@ describe("PDF sur Vercel", () => {
     expect(r.res.headers.get("content-type")).toBe("application/pdf");
   });
 });
+
+describe("suivi en direct et fréquence", () => {
+  it("ouvrir la fiche passe l'appareil en direct (15 s), puis il revient à son rythme", async () => {
+    const live = await import("@/app/api/devices/[id]/live/route");
+    const device = await import("@/app/api/devices/[id]/route");
+    const { cookie } = await newUser();
+    const { deviceId, token } = await newPairedDevice(cookie);
+    expect((await call(heartbeat.POST, { token, body: {} })).data.intervalSec).toBe(300);
+
+    const r = await call(live.POST, { cookie, params: { id: deviceId } });
+    expect(r.data.live).toBe(true);
+    expect((await call(heartbeat.POST, { token, body: {} })).data.intervalSec).toBe(15);
+    expect((await call(device.GET, { cookie, params: { id: deviceId } })).data.live).toBe(true);
+
+    await prisma.device.update({ where: { id: deviceId }, data: { liveUntil: new Date(Date.now() - 1000) } });
+    expect((await call(heartbeat.POST, { token, body: {} })).data.intervalSec).toBe(300);
+  });
+
+  it("le propriétaire choisit la fréquence normale", async () => {
+    const device = await import("@/app/api/devices/[id]/route");
+    const { cookie } = await newUser();
+    const { deviceId, token } = await newPairedDevice(cookie);
+    const ok = await call(device.PATCH, { method: "PATCH", cookie, params: { id: deviceId }, body: { trackingIntervalSec: "60" } });
+    expect(ok.data.trackingIntervalSec).toBe(60);
+    expect((await call(heartbeat.POST, { token, body: {} })).data.intervalSec).toBe(60);
+    const bad = await call(device.PATCH, { method: "PATCH", cookie, params: { id: deviceId }, body: { trackingIntervalSec: 5 } });
+    expect(bad.status).toBe(400);
+  });
+});
