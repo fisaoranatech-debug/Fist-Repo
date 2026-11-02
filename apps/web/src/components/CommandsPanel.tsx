@@ -14,7 +14,7 @@ export function CommandsPanel({ device, onChange }: { device: DeviceDTO; onChang
   const { data: history, mutate } = useSWR<CommandDTO[]>(`/api/devices/${device.id}/commands`, fetcher, { refreshInterval: 5000 });
   const [dialog, setDialog] = useState<CommandType | null>(null);
   const [busy, setBusy] = useState<CommandType | null>(null);
-  const [message, setMessage] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  const [message, setMessage] = useState<{ tone: "green" | "red" | "amber"; text: string } | null>(null);
   const canControl = device.access !== "VIEWER";
   const hasAdmin = device.capabilities.includes("deviceAdmin");
 
@@ -22,8 +22,17 @@ export function CommandsPanel({ device, onChange }: { device: DeviceDTO; onChang
     setBusy(type);
     setMessage(null);
     try {
-      await api(`/api/devices/${device.id}/commands`, { body: { type, ...extra } });
-      setMessage({ tone: "green", text: `Commande « ${LABELS.command[type]} » envoyée. L'appareil l'exécutera dès qu'il sera connecté.` });
+      const res = await api<{ wakeUp: "sent" | "no-token" | "failed" }>(`/api/devices/${device.id}/commands`, {
+        body: { type, ...extra },
+      });
+      const label = `Commande « ${LABELS.command[type]} » envoyée.`;
+      setMessage(
+        res.wakeUp === "sent"
+          ? { tone: "green", text: `${label} Réveil instantané envoyé au téléphone : elle devrait s'exécuter dans quelques secondes.` }
+          : res.wakeUp === "no-token"
+            ? { tone: "amber", text: `${label} Le téléphone n'a pas activé les notifications instantanées : elle s'exécutera à sa prochaine connexion (5 min maximum, ou dès que l'application est ouverte).` }
+            : { tone: "amber", text: `${label} Le réveil instantané a échoué : elle s'exécutera à la prochaine connexion du téléphone (5 min maximum).` },
+      );
       setDialog(null);
       await mutate();
       onChange();
@@ -33,6 +42,18 @@ export function CommandsPanel({ device, onChange }: { device: DeviceDTO; onChang
     } finally {
       setBusy(null);
     }
+  }
+
+  async function cancel(c: CommandDTO) {
+    if (!confirm(`Annuler la commande « ${LABELS.command[c.type]} » ?`)) return;
+    try {
+      await api(`/api/devices/${device.id}/commands/${c.id}`, { method: "DELETE" });
+      setMessage({ tone: "green", text: `Commande « ${LABELS.command[c.type]} » annulée.` });
+    } catch (e) {
+      setMessage({ tone: "red", text: (e as Error).message });
+    }
+    await mutate();
+    onChange();
   }
 
   if (!device.paired) {
@@ -75,7 +96,14 @@ export function CommandsPanel({ device, onChange }: { device: DeviceDTO; onChang
                   <p className="truncate">{LABELS.command[c.type]}</p>
                   <p className="truncate text-xs text-muted">{formatDateTime(c.createdAt)}{c.result ? ` · ${c.result}` : ""}</p>
                 </div>
-                <Badge tone={STATUS_TONE[c.status]}>{LABELS.commandStatus[c.status]}</Badge>
+                <span className="flex shrink-0 items-center gap-1.5">
+                  <Badge tone={STATUS_TONE[c.status]}>{LABELS.commandStatus[c.status]}</Badge>
+                  {canControl && (c.status === "PENDING" || c.status === "SENT") && (
+                    <button onClick={() => cancel(c)} className="text-xs font-medium text-red-600 hover:underline" aria-label={`Annuler ${LABELS.command[c.type]}`}>
+                      Annuler
+                    </button>
+                  )}
+                </span>
               </li>
             ))}
           </ul>

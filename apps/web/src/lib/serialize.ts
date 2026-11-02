@@ -46,6 +46,7 @@ export function toDeviceDTO(
     lostMessage: d.lostMessage,
     capabilities: d.capabilities,
     hasSmsSecret: !!d.smsSecret,
+    instantWakeUp: !!d.pushToken,
     access,
     ownerName: d.user?.name ?? "",
     lastLocation: lastLocation ? toLocationDTO(lastLocation) : null,

@@ -24,6 +24,6 @@ export const POST = route<Ctx>(async (req, { params }) => {
   const { id } = await params;
   const { device } = await requireDevice(id, user.id, "control");
   const input = await readJson(req, commandCreateSchema);
-  const command = await createCommand(device, user, input);
-  return json(toCommandDTO(command), 201);
+  const { command, wakeUp } = await createCommand(device, user, input);
+  return json({ ...toCommandDTO(command), wakeUp }, 201);
 });

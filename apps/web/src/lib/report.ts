@@ -13,7 +13,7 @@ function winAnsi(text: string): string {
 }
 
 const fmtDate = (d: Date) =>
-  d.toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short", timeZone: process.env.TZ || "Indian/Antananarivo" });
+  d.toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short", timeZone: "Indian/Antananarivo" });
 
 interface ReportInput {
   device: Device;

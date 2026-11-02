@@ -35,6 +35,8 @@ export interface DeviceDTO {
   lostMessage: string | null;
   capabilities: string[];
   hasSmsSecret: boolean;
+  /** true si l'appareil a envoyé un jeton push (réveil instantané possible). */
+  instantWakeUp: boolean;
   /** Rôle de l'utilisateur courant sur cet appareil. */
   access: "OWNER" | ShareRole;
   ownerName: string;

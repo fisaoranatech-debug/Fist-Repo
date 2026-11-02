@@ -65,6 +65,11 @@ export default function DevicePage() {
               {!device.paired ? <Badge tone="amber">À associer</Badge> : isOnline(device.lastSeenAt) ? <Badge tone="green">● En ligne</Badge> : <Badge>Vu {timeAgo(device.lastSeenAt)}</Badge>}
               <BatteryBadge level={device.battery} charging={device.charging} />
               {device.carrierName && <Badge>📶 {device.carrierName}</Badge>}
+              {device.paired && (
+                <Badge tone={device.instantWakeUp ? "green" : "amber"}>
+                  ⚡ Réveil instantané : {device.instantWakeUp ? "activé" : "non activé"}
+                </Badge>
+              )}
             </div>
           </div>
         </div>

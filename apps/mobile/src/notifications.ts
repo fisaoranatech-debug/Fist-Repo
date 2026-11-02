@@ -73,14 +73,14 @@ export async function ringWithNotification(): Promise<void> {
 }
 
 /** Jeton Expo Push : permet au serveur de réveiller l'app pour une commande. */
-export async function getPushToken(): Promise<string | null> {
+export async function getPushToken(): Promise<{ token: string | null; error: string | null }> {
   try {
     const perm = await Notifications.getPermissionsAsync();
-    if (!perm.granted) return null;
-    if (!EAS_PROJECT_ID) return null; // nécessite un projet EAS (voir README)
+    if (!perm.granted) return { token: null, error: "notifications non autorisées" };
+    if (!EAS_PROJECT_ID) return { token: null, error: "projet Expo non configuré" };
     const token = await Notifications.getExpoPushTokenAsync({ projectId: EAS_PROJECT_ID });
-    return token.data;
-  } catch {
-    return null;
+    return { token: token.data, error: null };
+  } catch (err) {
+    return { token: null, error: (err as Error).message?.slice(0, 160) || "erreur inconnue" };
   }
 }

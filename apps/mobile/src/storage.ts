@@ -39,6 +39,9 @@ export interface LocalStatus {
   lastLocationAt: string | null;
   /** true si le serveur a refusé le jeton (appareil supprimé ou associé ailleurs). */
   revoked: boolean;
+  /** Notifications instantanées : actives si un jeton push a été obtenu. */
+  pushActive?: boolean;
+  pushError?: string | null;
 }
 
 export const getState = () => kvGet<AgentState>("state");

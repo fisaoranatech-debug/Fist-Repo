@@ -116,6 +116,11 @@ export default function HomeScreen() {
           <Card>
             <StatusRow ok={status?.lastSyncOk ?? null} label="Dernière synchronisation" detail={`${ago(status?.lastSyncAt ?? null)}${status?.lastError ? ` · ${status.lastError}` : ""}`} />
             <StatusRow ok={status?.lastLocationAt ? true : null} label="Dernière position" detail={ago(status?.lastLocationAt ?? null)} />
+            <StatusRow
+              ok={status?.pushActive ?? null}
+              label="Notifications instantanées"
+              detail={status?.pushActive ? "Actives : les commandes arrivent en quelques secondes" : `Inactives${status?.pushError ? ` (${status.pushError})` : ""} : commandes reçues toutes les 5 min`}
+            />
             <StatusRow ok={queued === 0} label="Positions en attente d'envoi" detail={queued === 0 ? "Aucune" : `${queued} (envoyées dès que le réseau revient)`} />
             <StatusRow ok={permsOk} label="Autorisations" detail={permsOk ? "Tout est en ordre" : "Une autorisation manque"}
               action={<Button label="Vérifier" variant="secondary" onPress={() => router.push("/permissions")} />} />

@@ -13,6 +13,7 @@ import { getPushToken, hideLostModeNotification, ringWithNotification, showLostM
 import { enqueuePoints, flushQueue } from "./queue";
 import {
   getState,
+  getStatus,
   isCommandDone,
   loadCredentials,
   markCommandDone,
@@ -20,7 +21,7 @@ import {
   setState,
   type Credentials,
 } from "./storage";
-import { startTracking, stopTracking, toPoint } from "./tracking";
+import { isTracking, startTracking, stopTracking, toPoint } from "./tracking";
 
 async function batteryInfo(): Promise<{ level?: number; charging?: boolean }> {
   try {
@@ -164,11 +165,14 @@ async function doSync({ locations = [], forceLocate = false }: { reason: string;
     if (flush.error) throw flush.error;
 
     const previous = await getState();
+    const push = await getPushToken();
+    await patchStatus({ pushActive: !!push.token, pushError: push.error });
     const state = await api.heartbeat({
       battery: battery.level,
       charging: battery.charging,
       ...(await cellularInfo()),
-      pushToken: await getPushToken(),
+      // On n'efface pas un jeton déjà connu du serveur si l'obtention échoue ponctuellement.
+      ...(push.token ? { pushToken: push.token } : {}),
       appVersion: APP_VERSION,
       model: [Device.manufacturer, Device.modelName].filter(Boolean).join(" ") || undefined,
       osVersion: Device.osVersion ? `Android ${Device.osVersion}` : undefined,
@@ -191,4 +195,21 @@ async function doSync({ locations = [], forceLocate = false }: { reason: string;
     }
     await patchStatus({ lastSyncAt: new Date().toISOString(), lastSyncOk: false, lastError: (err as Error).message });
   }
+}
+
+/**
+ * S'assure que l'envoi des positions en arrière-plan tourne.
+ * Android l'arrête par exemple après une mise à jour de l'application.
+ * `force` : redémarre même s'il semble actif (au démarrage de l'app).
+ */
+export async function ensureTracking(force = false): Promise<void> {
+  const creds = await loadCredentials();
+  if (!creds) return;
+  const status = await getStatus();
+  if (status.revoked) return;
+  const bg = await Location.getBackgroundPermissionsAsync().catch(() => null);
+  if (!bg?.granted) return;
+  if (!force && (await isTracking())) return;
+  const state = await getState();
+  await startTracking(state?.intervalSec).catch(() => {});
 }

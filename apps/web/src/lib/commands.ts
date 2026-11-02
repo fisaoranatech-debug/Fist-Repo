@@ -53,6 +53,6 @@ export async function createCommand(device: Device, user: User, input: CommandCr
     });
   });
 
-  await sendWakeUpPush(device.pushToken, { kind: "command", commandId: command.id, type: command.type });
-  return command;
+  const wakeUp = await sendWakeUpPush(device, { kind: "command", commandId: command.id, type: command.type });
+  return { command, wakeUp };
 }
