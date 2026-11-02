@@ -6,7 +6,8 @@ import { rateLimit } from "@/lib/rate-limit";
 import { sessionCookieHeader, signSession } from "@/lib/session";
 
 export const POST = route(async (req) => {
-  await rateLimit(`register:${clientIp(req)}`, 10, 60 * 60_000);
+  // Limite large : les opérateurs mobiles partagent souvent une même adresse IP entre beaucoup d'abonnés.
+  await rateLimit(`register:${clientIp(req)}`, 30, 60 * 60_000);
   const input = await readJson(req, registerSchema);
   const exists = await prisma.user.findUnique({ where: { email: input.email } });
   if (exists) throw new HttpError(409, "Un compte existe déjà avec cet email.");

@@ -41,6 +41,10 @@ L'IMEI sert à autre chose : il est enregistré dans la fiche de l'appareil et f
 - **PDF de déclaration** pour la police et l'opérateur : propriétaire, IMEI, SIM, dernières positions et démarches à suivre.
 - **Ordinateurs** : position approximative (adresse IP, ou position fixe pour un PC de bureau), sonnerie, verrouillage et message.
 - **Vie privée** : les positions sont supprimées automatiquement après 30 jours, et l'application reste toujours visible sur l'appareil.
+- **Alertes par email (Gmail) et notifications du navigateur**, envoyées au propriétaire et à la famille, sans spam (une seule notification par type toutes les 15 min).
+- **Compte complet** : mot de passe oublié (lien par email), changement de mot de passe (déconnecte les autres sessions), suppression du compte et de toutes ses données.
+- **Site installable (PWA)** : il s'ajoute à l'écran d'accueil comme une application, et affiche une page « hors ligne ».
+- **Pages légales** (confidentialité, conditions d'utilisation) et pages d'erreur en français.
 
 ## 1. Lancer le site sur votre ordinateur
 
@@ -119,8 +123,10 @@ eas init                  # crée le projet EAS et affiche son identifiant
      - `APP_URL` : l'adresse du site ;
      - `CRON_SECRET` : une autre chaîne aléatoire ;
      - `EXPO_ACCESS_TOKEN` : facultatif.
-3. Déployez. Le script `vercel-build` crée les tables automatiquement (`prisma migrate deploy`).
-4. Les tâches planifiées de `apps/web/vercel.json` (nettoyage et détection hors ligne) s'activent toutes seules.
+3. Pour les emails : activez la validation en deux étapes sur votre compte Google, créez un **mot de passe d'application** (https://myaccount.google.com/apppasswords), puis ajoutez `SMTP_USER`, `SMTP_PASSWORD` et `MAIL_FROM` dans Vercel.
+4. Pour les notifications du navigateur : `npx web-push generate-vapid-keys`, puis ajoutez `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` et `VAPID_SUBJECT`.
+5. Déployez. Le script `vercel-build` crée les tables automatiquement (`prisma migrate deploy`).
+6. Les tâches planifiées de `apps/web/vercel.json` (nettoyage et détection hors ligne) s'activent toutes seules.
 
 ## 4. Agent pour ordinateurs
 
@@ -139,8 +145,8 @@ Sans GPS, la position d'un ordinateur est **approximative** : elle est déduite 
 ## Tests
 
 ```bash
-npm test                    # schémas partagés + API (22 tests sur une vraie base PostgreSQL « retrouve_test »)
-npm run test:e2e            # parcours complet dans le navigateur (Playwright, ordinateur + mobile)
+npm test                    # schémas partagés + API (41 tests sur une vraie base PostgreSQL « retrouve_test »)
+npm run test:e2e            # parcours dans le navigateur, sur une version de production locale (Playwright, ordinateur + mobile)
 npm run typecheck && npm run lint
 cd apps/mobile && npm test && npm run typecheck     # application mobile
 cd apps/desktop-agent && npm test                   # agent ordinateur

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Footer } from "@/components/Footer";
 import { getSessionUser } from "@/lib/server-session";
 
 const FEATURES = [
@@ -61,6 +62,7 @@ export default async function Home() {
           l&apos;appareil : la localisation se fait toujours avec le consentement de son utilisateur.
         </p>
       </section>
+      <Footer />
     </main>
   );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api-client";
+import { Footer } from "./Footer";
 import { Alert, Button, Card, Field, Input } from "./ui";
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
@@ -58,6 +59,11 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
               required
             />
           </Field>
+          {mode === "login" && (
+            <p className="-mt-2 text-right text-sm">
+              <Link href="/mot-de-passe-oublie" className="font-medium text-brand-600">Mot de passe oublié ?</Link>
+            </p>
+          )}
           {mode === "register" && (
             <Field
               label="Téléphone de contact (optionnel)"
@@ -66,6 +72,21 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             >
               <Input name="contactPhone" type="tel" autoComplete="tel" placeholder="+261 34 00 000 00" />
             </Field>
+          )}
+          {mode === "register" && (
+            <div>
+              <label className="flex items-start gap-2.5 text-sm">
+                <input type="checkbox" name="acceptTerms" className="mt-0.5 size-4 accent-[var(--color-brand-600)]" />
+                <span>
+                  J&apos;accepte les{" "}
+                  <Link href="/conditions" target="_blank" className="font-medium text-brand-600 underline">conditions d&apos;utilisation</Link>{" "}
+                  et la{" "}
+                  <Link href="/confidentialite" target="_blank" className="font-medium text-brand-600 underline">politique de confidentialité</Link>.
+                  Je n&apos;installerai Retrouve que sur mes appareils ou avec l&apos;accord de leur utilisateur.
+                </span>
+              </label>
+              {fe("acceptTerms") && <span className="mt-1 block text-xs text-red-600">{fe("acceptTerms")}</span>}
+            </div>
           )}
           <Button type="submit" className="w-full" loading={loading}>
             {mode === "login" ? "Se connecter" : "Créer mon compte"}
@@ -79,6 +100,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           <>Déjà inscrit ? <Link className="font-semibold text-brand-600" href="/connexion">Connexion</Link></>
         )}
       </p>
+      <Footer />
     </main>
   );
 }

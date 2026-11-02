@@ -26,6 +26,9 @@ test("parcours complet : inscription, ajout, association, carte, commandes, PDF"
   await page.getByLabel("Mot de passe").fill("motdepasse123");
   await page.getByLabel(/Téléphone de contact/).fill("+261 34 11 222 33");
   await page.getByRole("button", { name: "Créer mon compte" }).click();
+  await expect(page.getByText(/Vous devez accepter les conditions/).first()).toBeVisible();
+  await page.getByRole("checkbox", { name: /J'accepte les/ }).check();
+  await page.getByRole("button", { name: "Créer mon compte" }).click();
   await expect(page.getByRole("heading", { name: "Mes appareils" })).toBeVisible();
 
   // 2. Ajout d'un appareil (IMEI invalide d'abord : message clair)

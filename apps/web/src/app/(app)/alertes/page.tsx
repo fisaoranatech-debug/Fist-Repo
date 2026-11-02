@@ -3,38 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
-import { LABELS, mapLink, type AlertDTO } from "@retrouve/shared";
+import { ALERT_ICONS, describeAlert, LABELS, mapLink, type AlertDTO } from "@retrouve/shared";
 import { Modal } from "@/components/Modal";
 import { Badge, Button, Card, PageTitle } from "@/components/ui";
 import { api, fetcher } from "@/lib/api-client";
 import { formatDateTime, timeAgo } from "@/lib/format";
-
-const ICONS: Record<AlertDTO["type"], string> = {
-  SIM_CHANGED: "📶",
-  LOW_BATTERY: "🪫",
-  GEOFENCE_EXIT: "🚧",
-  INTRUDER_PHOTO: "📸",
-  FAILED_UNLOCK: "🔐",
-  OFFLINE: "📴",
-};
-
-function describe(a: AlertDTO): string {
-  const d = (a.data ?? {}) as Record<string, string | number | null>;
-  switch (a.type) {
-    case "SIM_CHANGED":
-      return `Opérateur : ${d.before ?? "?"} → ${d.after ?? "?"}. Quelqu'un a peut-être mis une autre carte SIM.`;
-    case "LOW_BATTERY":
-      return `Batterie à ${d.battery ?? "?"} %. La dernière position a été envoyée.`;
-    case "GEOFENCE_EXIT":
-      return `L'appareil est sorti de la zone « ${d.zone ?? ""} ».`;
-    case "INTRUDER_PHOTO":
-      return `Photo prise après ${d.failedAttempts ?? "plusieurs"} mauvais codes de déverrouillage.`;
-    case "FAILED_UNLOCK":
-      return `${d.failedAttempts ?? "Plusieurs"} mauvais codes de déverrouillage. Quelqu'un essaie peut-être d'utiliser l'appareil.`;
-    case "OFFLINE":
-      return `Aucune nouvelle depuis ${d.lastSeenAt ? formatDateTime(String(d.lastSeenAt)) : "plus de 24 h"}. Téléphone éteint, sans réseau ou application arrêtée.`;
-  }
-}
 
 export default function AlertsPage() {
   const { data, mutate } = useSWR<AlertDTO[]>("/api/alerts", fetcher, { refreshInterval: 20_000 });
@@ -65,14 +38,14 @@ export default function AlertsPage() {
           return (
             <Card key={a.id} className={a.readAt ? "opacity-75" : "border-l-4 border-l-brand-600"}>
               <div className="flex items-start gap-3" onMouseEnter={() => markOne(a)}>
-                <span className="text-2xl">{ICONS[a.type]}</span>
+                <span className="text-2xl">{ALERT_ICONS[a.type]}</span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-semibold">{LABELS.alert[a.type]}</p>
                     {!a.readAt && <Badge tone="blue">Nouveau</Badge>}
                   </div>
                   <p className="text-sm">
-                    <Link className="font-medium text-brand-600" href={`/appareils/${a.deviceId}`}>{a.deviceName}</Link> · {describe(a)}
+                    <Link className="font-medium text-brand-600" href={`/appareils/${a.deviceId}`}>{a.deviceName}</Link> · {describeAlert(a.type, a.data)}
                   </p>
                   <p className="mt-1 text-xs text-muted" title={formatDateTime(a.createdAt)}>{timeAgo(a.createdAt)}</p>
                   <div className="mt-2 flex gap-3 text-sm">
