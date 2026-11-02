@@ -9,11 +9,11 @@
     "preview": {
       "distribution": "internal",
       "android": { "buildType": "apk" },
-      "env": { "EXPO_PUBLIC_API_URL": "https://VOTRE-SITE.vercel.app" }
+      "env": { "EXPO_PUBLIC_API_URL": "https://retrouve-roan.vercel.app" }
     },
     "production": {
       "android": { "buildType": "apk" },
-      "env": { "EXPO_PUBLIC_API_URL": "https://VOTRE-SITE.vercel.app" }
+      "env": { "EXPO_PUBLIC_API_URL": "https://retrouve-roan.vercel.app" }
     }
   }
 }
