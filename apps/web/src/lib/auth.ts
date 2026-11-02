@@ -64,7 +64,8 @@ export async function requireDevice(
         : "Vous pouvez seulement voir cet appareil.",
     );
   }
-  const { shares: _shares, ...plain } = device;
+  const { shares, ...plain } = device;
+  void shares;
   return { device: plain, access };
 }
 

@@ -11,7 +11,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "typecheck": "tsc --noEmit",
-    "lint": "next lint --dir src",
+    "lint": "eslint src",
     "test": "vitest run",
     "test:e2e": "playwright test"
   },
@@ -26,6 +26,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-leaflet": "^5.0.0",
+    "server-only": "^0.0.1",
     "swr": "^2.3.6",
     "zod": "^4.6.7"
   },
