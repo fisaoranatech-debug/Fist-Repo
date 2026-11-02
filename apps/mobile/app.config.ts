@@ -8,6 +8,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "Retrouve",
   slug: "retrouve",
+  owner: "joy04051131s-team",
   scheme: "retrouve",
   version: "0.1.0",
   orientation: "portrait",
@@ -81,6 +82,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   experiments: { typedRoutes: false },
   extra: {
     apiUrl: process.env.EXPO_PUBLIC_API_URL ?? "",
-    eas: process.env.EAS_PROJECT_ID ? { projectId: process.env.EAS_PROJECT_ID } : undefined,
+    // Projet Expo créé avec `eas init` (identifiant public, pas un secret).
+    eas: { projectId: process.env.EAS_PROJECT_ID || "fbd0ecbc-8903-4265-991a-9da18575cb99" },
   },
 });
