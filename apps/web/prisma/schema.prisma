@@ -1,0 +1,199 @@
+// Base de données de Retrouve.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DeviceType {
+  PHONE
+  TABLET
+  COMPUTER
+  TRACKER
+}
+
+enum LocationSource {
+  GPS
+  NETWORK
+  IP
+  SMS
+}
+
+enum CommandType {
+  RING
+  LOCATE_NOW
+  LOST_MODE_ON
+  LOST_MODE_OFF
+  LOCK
+  WIPE
+}
+
+enum CommandStatus {
+  PENDING
+  SENT
+  ACKED
+  DONE
+  FAILED
+}
+
+enum AlertType {
+  SIM_CHANGED
+  LOW_BATTERY
+  GEOFENCE_EXIT
+  INTRUDER_PHOTO
+  OFFLINE
+}
+
+enum ShareRole {
+  VIEWER
+  CONTROLLER
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  passwordHash String
+  name         String
+  contactPhone String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  devices      Device[]
+  pairingCodes PairingCode[]
+  shares       DeviceShare[]
+}
+
+model Device {
+  id           String         @id @default(cuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  type         DeviceType     @default(PHONE)
+  model        String?
+  imei         String?
+  simNumber    String?
+  platform     String?
+  osVersion    String?
+  appVersion   String?
+  /// SHA-256 du jeton secret de l'appareil (le jeton lui-même n'est jamais stocké).
+  tokenHash    String?        @unique
+  pushToken    String?
+  battery      Int?
+  charging     Boolean?
+  carrierName  String?
+  mcc          String?
+  mnc          String?
+  capabilities String[]       @default([])
+  /// Code secret des commandes SMS (ex. "LOCATE 4821"), synchronisé vers l'appareil.
+  smsSecret    String?
+  lastSeenAt   DateTime?
+  lostMode     Boolean        @default(false)
+  lostMessage  String?
+  offlineAlertedAt DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  locations    Location[]
+  commands     Command[]
+  alerts       Alert[]
+  geofences    Geofence[]
+  shares       DeviceShare[]
+  pairingCodes PairingCode[]
+
+  @@index([userId])
+}
+
+model DeviceShare {
+  id        String    @id @default(cuid())
+  deviceId  String
+  device    Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      ShareRole @default(VIEWER)
+  createdAt DateTime  @default(now())
+
+  @@unique([deviceId, userId])
+  @@index([userId])
+}
+
+model PairingCode {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Si renseigné, l'association remplace le jeton de cet appareil existant.
+  deviceId  String?
+  device    Device?   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model Location {
+  id         String         @id @default(cuid())
+  deviceId   String
+  device     Device         @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  lat        Float
+  lng        Float
+  accuracy   Float?
+  altitude   Float?
+  speed      Float?
+  heading    Float?
+  battery    Int?
+  source     LocationSource @default(GPS)
+  recordedAt DateTime
+  createdAt  DateTime       @default(now())
+
+  @@index([deviceId, recordedAt])
+}
+
+model Command {
+  id        String        @id @default(cuid())
+  deviceId  String
+  device    Device        @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  type      CommandType
+  payload   Json?
+  status    CommandStatus @default(PENDING)
+  result    String?
+  createdById String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([deviceId, status])
+}
+
+model Alert {
+  id        String    @id @default(cuid())
+  deviceId  String
+  device    Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  type      AlertType
+  data      Json?
+  /// Photo JPEG (alerte INTRUDER_PHOTO).
+  photo     Bytes?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([deviceId, createdAt])
+}
+
+model Geofence {
+  id        String   @id @default(cuid())
+  deviceId  String
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  name      String
+  lat       Float
+  lng       Float
+  radiusM   Int
+  enabled   Boolean  @default(true)
+  /// Dernier état connu, pour n'alerter qu'au moment de la sortie.
+  inside    Boolean?
+  createdAt DateTime @default(now())
+}
+
+/// Compteur simple pour limiter les tentatives (connexion, association).
+model RateLimit {
+  key       String   @id
+  count     Int
+  resetAt   DateTime
+}
