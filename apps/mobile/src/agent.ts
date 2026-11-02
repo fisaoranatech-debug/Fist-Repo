@@ -8,7 +8,7 @@ import { runCommands } from "./commands";
 import { APP_VERSION, CRITICAL_BATTERY, RING_SECONDS } from "./config";
 import { sqliteQueue } from "./db";
 import { HttpStatusError } from "./http";
-import { RetrouveNative } from "./native";
+import { parseNativeStatus, RetrouveNative } from "./native";
 import { getPushToken, hideLostModeNotification, ringWithNotification, showLostModeNotification } from "./notifications";
 import { enqueuePoints, flushQueue } from "./queue";
 import {
@@ -142,7 +142,33 @@ export function sync(opts: { reason: string; locations?: Location.LocationObject
   return job;
 }
 
+/** Android : l'agent natif synchronise et exécute les commandes ; l'interface lit son état. */
+async function nativeSync(forceLocate: boolean) {
+  const creds = await loadCredentials();
+  if (!creds || !RetrouveNative) return;
+  RetrouveNative.setCredentials(creds.apiUrl, creds.token);
+  const push = await getPushToken();
+  if (push.token) RetrouveNative.setPushToken(push.token);
+  await patchStatus({ pushActive: !!push.token, pushError: push.error });
+  await applyNativeStatus(await RetrouveNative.syncNow(forceLocate));
+}
+
+/** Recopie l'état de l'agent natif dans l'état local (écran d'accueil, mode perdu). */
+export async function applyNativeStatus(json: string) {
+  const s = parseNativeStatus(json);
+  if (!s) return;
+  if (s.state) await setState(s.state as AgentState);
+  await patchStatus({
+    lastSyncAt: s.lastSyncAt,
+    lastSyncOk: s.lastSyncOk,
+    lastError: s.lastError,
+    lastLocationAt: s.lastLocationAt,
+    revoked: s.revoked,
+  });
+}
+
 async function doSync({ locations = [], forceLocate = false }: { reason: string; locations?: Location.LocationObject[]; forceLocate?: boolean }) {
+  if (RetrouveNative) return nativeSync(forceLocate || locations.length > 0);
   const creds = await loadCredentials();
   if (!creds) return;
   const api = agentApi(creds.apiUrl, creds.token);
@@ -190,7 +216,6 @@ async function doSync({ locations = [], forceLocate = false }: { reason: string;
       // Appareil supprimé ou associé sur un autre téléphone : on arrête tout.
       await patchStatus({ revoked: true, lastSyncOk: false, lastError: err.message });
       await stopTracking();
-      RetrouveNative?.setAgentConfig(null, null, null, null);
       return;
     }
     await patchStatus({ lastSyncAt: new Date().toISOString(), lastSyncOk: false, lastError: (err as Error).message });

@@ -4,6 +4,7 @@ import * as Notifications from "expo-notifications";
 import { TRACKING_INTERVAL_SEC } from "@retrouve/shared";
 import { TASKS } from "./config";
 import { RetrouveNative } from "./native";
+import { loadCredentials } from "./storage";
 
 export interface PermissionReport {
   foreground: boolean;
@@ -11,6 +12,8 @@ export interface PermissionReport {
   notifications: boolean;
   batteryUnrestricted: boolean | null;
   deviceAdmin: boolean | null;
+  /** Android a placé l'application en mode « restreint » (batterie). */
+  backgroundRestricted: boolean | null;
 }
 
 export async function permissionReport(): Promise<PermissionReport> {
@@ -25,11 +28,23 @@ export async function permissionReport(): Promise<PermissionReport> {
     notifications: notif.granted,
     batteryUnrestricted: RetrouveNative ? RetrouveNative.isIgnoringBatteryOptimizations() : null,
     deviceAdmin: RetrouveNative ? RetrouveNative.isAdminActive() : null,
+    backgroundRestricted: RetrouveNative ? RetrouveNative.isBackgroundRestricted() : null,
   };
 }
 
 /** Démarre (ou redémarre avec un nouvel intervalle) l'envoi des positions en arrière-plan. */
 export async function startTracking(intervalSec: number = TRACKING_INTERVAL_SEC.normal): Promise<void> {
+  if (RetrouveNative) {
+    // Android : l'agent natif fait tout (positions, commandes), même application fermée.
+    if (await Location.hasStartedLocationUpdatesAsync(TASKS.location).catch(() => false)) {
+      await Location.stopLocationUpdatesAsync(TASKS.location).catch(() => {});
+    }
+    const creds = await loadCredentials();
+    if (creds) RetrouveNative.setCredentials(creds.apiUrl, creds.token);
+    RetrouveNative.startAgent();
+    await BackgroundTask.registerTaskAsync(TASKS.background, { minimumInterval: 15 }).catch(() => {});
+    return;
+  }
   const started = await Location.hasStartedLocationUpdatesAsync(TASKS.location).catch(() => false);
   if (started) await Location.stopLocationUpdatesAsync(TASKS.location);
   await Location.startLocationUpdatesAsync(TASKS.location, {
@@ -53,13 +68,15 @@ export async function startTracking(intervalSec: number = TRACKING_INTERVAL_SEC.
 }
 
 export async function stopTracking(): Promise<void> {
+  RetrouveNative?.stopAgent();
   if (await Location.hasStartedLocationUpdatesAsync(TASKS.location).catch(() => false)) {
     await Location.stopLocationUpdatesAsync(TASKS.location);
   }
   await BackgroundTask.unregisterTaskAsync(TASKS.background).catch(() => {});
 }
 
-export const isTracking = () => Location.hasStartedLocationUpdatesAsync(TASKS.location).catch(() => false);
+export const isTracking = async () =>
+  RetrouveNative ? RetrouveNative.isAgentRunning() : Location.hasStartedLocationUpdatesAsync(TASKS.location).catch(() => false);
 
 export function toPoint(loc: Location.LocationObject, battery?: number) {
   return {

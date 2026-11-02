@@ -65,6 +65,9 @@ export default function DevicePage() {
               {!device.paired ? <Badge tone="amber">À associer</Badge> : isOnline(device.lastSeenAt) ? <Badge tone="green">● En ligne</Badge> : <Badge>Vu {timeAgo(device.lastSeenAt)}</Badge>}
               <BatteryBadge level={device.battery} charging={device.charging} />
               {device.carrierName && <Badge>📶 {device.carrierName}</Badge>}
+              {device.capabilities.includes("bgRestricted") && (
+                <Badge tone="red">⚠️ Restreinte par Android (batterie)</Badge>
+              )}
               {device.paired && (
                 <Badge tone={device.instantWakeUp ? "green" : "amber"}>
                   ⚡ Réveil instantané : {device.instantWakeUp ? "activé" : "non activé"}
@@ -77,6 +80,16 @@ export default function DevicePage() {
           📄 Déclaration de perte (PDF)
         </a>
       </div>
+
+      {device.capabilities.includes("bgRestricted") && (
+        <div className="mb-4">
+          <Alert tone="amber">
+            Android a placé Retrouve en mode « restreint » sur ce téléphone : l&apos;application ne peut pas fonctionner
+            fermée. Sur le téléphone : Paramètres → Applications → Retrouve → Batterie → « Sans restriction », et autorisez le
+            démarrage automatique.
+          </Alert>
+        </div>
+      )}
 
       {device.lostMode && (
         <div className="mb-4">

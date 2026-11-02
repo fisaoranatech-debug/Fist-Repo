@@ -77,3 +77,15 @@ internal object LocationHelper {
   fun mapLink(loc: Location): String =
     "https://maps.google.com/?q=%.6f,%.6f".format(java.util.Locale.US, loc.latitude, loc.longitude)
 }
+
+/** Position actuelle en attendant au plus `timeoutMs` (à appeler hors du thread principal). */
+internal fun LocationHelper.currentBlocking(context: Context, timeoutMs: Long): Location? {
+  val latch = java.util.concurrent.CountDownLatch(1)
+  var result: Location? = null
+  current(context, timeoutMs) { loc ->
+    result = loc
+    latch.countDown()
+  }
+  latch.await(timeoutMs + 2_000, java.util.concurrent.TimeUnit.MILLISECONDS)
+  return result ?: lastKnown(context)
+}

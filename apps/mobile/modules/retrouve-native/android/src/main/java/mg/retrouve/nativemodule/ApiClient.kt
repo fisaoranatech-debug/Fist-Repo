@@ -11,52 +11,79 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-/** Envois directs au serveur depuis le code natif (quand l'app JavaScript ne tourne pas). */
+/** Erreur HTTP renvoyée par le serveur Retrouve. */
+internal class ApiException(val status: Int, message: String) : Exception(message)
+
+/** Appels au serveur depuis le code natif (fonctionne même quand l'interface est fermée). */
 internal object ApiClient {
-  private fun iso(time: Long): String {
+  fun iso(time: Long): String {
     val f = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
     f.timeZone = TimeZone.getTimeZone("UTC")
     return f.format(Date(time))
   }
 
-  private fun post(context: Context, path: String, body: JSONObject): Boolean {
-    val base = Prefs.apiUrl(context) ?: return false
-    val token = Prefs.token(context) ?: return false
-    return try {
-      val conn = java.net.URI(base.trimEnd('/') + path).toURL().openConnection() as HttpURLConnection
-      conn.requestMethod = "POST"
-      conn.connectTimeout = 10_000
-      conn.readTimeout = 10_000
-      conn.doOutput = true
-      conn.setRequestProperty("Content-Type", "application/json")
+  /** Requête authentifiée par le jeton de l'appareil. À appeler hors du thread principal. */
+  fun request(context: Context, method: String, path: String, body: JSONObject? = null): String {
+    val base = Prefs.apiUrl(context) ?: throw ApiException(0, "Serveur non configuré")
+    val token = Prefs.token(context) ?: throw ApiException(401, "Appareil non associé")
+    val conn = java.net.URI(base.trimEnd('/') + path).toURL().openConnection() as HttpURLConnection
+    try {
+      conn.requestMethod = method
+      conn.connectTimeout = 15_000
+      conn.readTimeout = 20_000
+      conn.setRequestProperty("Accept", "application/json")
       conn.setRequestProperty("Authorization", "Bearer $token")
-      conn.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
-      val ok = conn.responseCode in 200..299
+      if (body != null) {
+        conn.doOutput = true
+        conn.setRequestProperty("Content-Type", "application/json")
+        conn.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+      }
+      val code = conn.responseCode
+      val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+      val text = stream?.bufferedReader()?.use { it.readText() } ?: ""
+      if (code !in 200..299) {
+        val msg = try { JSONObject(text).optString("error", "Erreur $code") } catch (_: Exception) { "Erreur $code" }
+        throw ApiException(code, msg)
+      }
+      return text
+    } finally {
       conn.disconnect()
-      ok
-    } catch (_: Exception) {
-      false
     }
   }
 
-  private fun battery(context: Context): Int? {
-    val bm = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager ?: return null
+  fun battery(context: Context): Pair<Int?, Boolean?> {
+    val bm = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager ?: return Pair(null, null)
     val level = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-    return if (level in 0..100) level else null
+    return Pair(if (level in 0..100) level else null, bm.isCharging)
   }
 
-  fun sendLocation(context: Context, loc: Location, source: String) {
-    val point = JSONObject()
+  fun point(context: Context, loc: Location, source: String): JSONObject {
+    val p = JSONObject()
       .put("lat", loc.latitude)
       .put("lng", loc.longitude)
       .put("source", source)
       .put("recordedAt", iso(loc.time))
-    if (loc.hasAccuracy()) point.put("accuracy", loc.accuracy.toDouble())
-    battery(context)?.let { point.put("battery", it) }
-    post(context, "/api/agent/locations", JSONObject().put("points", JSONArray().put(point)))
+    if (loc.hasAccuracy()) p.put("accuracy", loc.accuracy.toDouble())
+    if (loc.hasAltitude()) p.put("altitude", loc.altitude)
+    if (loc.hasSpeed() && loc.speed >= 0) p.put("speed", loc.speed.toDouble())
+    battery(context).first?.let { p.put("battery", it) }
+    return p
+  }
+
+  /** Envoie une position ; en cas d'échec réseau, elle est gardée et renvoyée plus tard. */
+  fun sendLocation(context: Context, loc: Location, source: String) {
+    AgentCore.enqueue(context, point(context, loc, source))
+    AgentCore.flushQueue(context)
   }
 
   fun sendAlert(context: Context, type: String, data: JSONObject) {
-    post(context, "/api/agent/alerts", JSONObject().put("type", type).put("data", data))
+    try {
+      request(context, "POST", "/api/agent/alerts", JSONObject().put("type", type).put("data", data))
+    } catch (_: Exception) {
+    }
+  }
+
+  fun sendPoints(context: Context, points: JSONArray) {
+    request(context, "POST", "/api/agent/locations", JSONObject().put("points", points))
   }
 }

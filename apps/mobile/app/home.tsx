@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import type { AgentState } from "@retrouve/shared";
 import { sync } from "../src/agent";
 import { clearQueue, sqliteQueue } from "../src/db";
-import { RetrouveNative } from "../src/native";
+import { parseNativeStatus, RetrouveNative } from "../src/native";
 import { hideLostModeNotification } from "../src/notifications";
 import {
   clearCredentials,
@@ -49,7 +49,7 @@ export default function HomeScreen() {
     setStatus(await getStatus());
     setTracking(await isTracking());
     setPerms(await permissionReport());
-    setQueued(await sqliteQueue.count());
+    setQueued(RetrouveNative ? parseNativeStatus(RetrouveNative.getAgentStatus())?.queued ?? 0 : await sqliteQueue.count());
     setAlarm(RetrouveNative?.isAlarmPlaying() ?? false);
   }, []);
 
@@ -124,6 +124,22 @@ export default function HomeScreen() {
             <StatusRow ok={queued === 0} label="Positions en attente d'envoi" detail={queued === 0 ? "Aucune" : `${queued} (envoyées dès que le réseau revient)`} />
             <StatusRow ok={permsOk} label="Autorisations" detail={permsOk ? "Tout est en ordre" : "Une autorisation manque"}
               action={<Button label="Vérifier" variant="secondary" onPress={() => router.push("/permissions")} />} />
+            {perms?.backgroundRestricted && (
+              <StatusRow
+                ok={false}
+                label="Application restreinte par Android"
+                detail="Retrouve ne peut pas fonctionner fermée. Réglez la batterie sur « Sans restriction »."
+                action={<Button label="Régler" variant="secondary" onPress={() => RetrouveNative?.openAutostartSettings()} />}
+              />
+            )}
+            {RetrouveNative && (
+              <StatusRow
+                ok={null}
+                label="Démarrage automatique"
+                detail="Sur Tecno, Infinix, Xiaomi, Oppo… autorisez Retrouve à démarrer seule, sinon le téléphone l'arrête."
+                action={<Button label="Ouvrir" variant="secondary" onPress={() => RetrouveNative?.openAutostartSettings()} />}
+              />
+            )}
             {perms?.deviceAdmin !== null && (
               <StatusRow ok={perms?.deviceAdmin ?? null} label="Anti-vol (verrouillage / effacement)" detail={perms?.deviceAdmin ? "Activé" : "Non activé (facultatif)"} />
             )}

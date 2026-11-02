@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
+import expo.modules.kotlin.Promise
 import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -31,6 +32,75 @@ class RetrouveNativeModule : Module() {
         .putString("smsSecret", smsSecret)
         .putString("contactPhone", contactPhone)
         .apply()
+    }
+
+    /** Identifiants de l'appareil, sans toucher au reste de la configuration. */
+    Function("setCredentials") { apiUrl: String?, token: String? ->
+      val edit = Prefs.get(context).edit().putString("apiUrl", apiUrl).putString("token", token)
+      if (token != null && token != Prefs.token(context)) edit.putBoolean("revoked", false).putString("state", null)
+      edit.apply()
+    }
+
+    Function("setPushToken") { token: String? ->
+      Prefs.get(context).edit().putString("pushToken", token).apply()
+    }
+
+    // ----- Agent natif (fonctionne application fermée) -----
+    Function("startAgent") {
+      Prefs.get(context).edit().putBoolean("enabled", true).apply()
+      AgentService.start(context)
+    }
+
+    Function("stopAgent") {
+      Prefs.get(context).edit().putBoolean("enabled", false).apply()
+      AgentService.stop(context)
+    }
+
+    Function("isAgentRunning") { AgentService.running }
+
+    Function("getAgentStatus") { AgentCore.status(context) }
+
+    /** Synchronise tout de suite (positions, état, commandes) et renvoie l'état JSON. */
+    AsyncFunction("syncNow") { forceLocate: Boolean, promise: Promise ->
+      Thread {
+        try {
+          promise.resolve(AgentCore.sync(context, null, forceLocate))
+        } catch (e: Exception) {
+          promise.resolve(AgentCore.status(context))
+        }
+      }.start()
+    }
+
+    Function("isBackgroundRestricted") { AgentCore.isBackgroundRestricted(context) }
+
+    /** Ouvre l'écran « démarrage automatique » du fabricant (Tecno, Infinix, Xiaomi, Oppo…) si possible. */
+    Function("openAutostartSettings") {
+      val candidates = listOf(
+        "com.transsion.phonemaster" to "com.cyin.himgr.autostart.AutoStartActivity",
+        "com.transsion.phonemaster" to "com.cyin.himgr.widget.activity.MainSettingGpActivity",
+        "com.miui.securitycenter" to "com.miui.permcenter.autostart.AutoStartManagementActivity",
+        "com.coloros.safecenter" to "com.coloros.safecenter.permission.startup.StartupAppListActivity",
+        "com.oppo.safe" to "com.oppo.safe.permission.startup.StartupAppListActivity",
+        "com.vivo.permissionmanager" to "com.vivo.permissionmanager.activity.BgStartUpManagerActivity",
+        "com.huawei.systemmanager" to "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity",
+        "com.samsung.android.lool" to "com.samsung.android.sm.battery.ui.BatteryActivity",
+      )
+      val activity = appContext.currentActivity
+      for ((pkg, cls) in candidates) {
+        val intent = Intent().setClassName(pkg, cls).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (intent.resolveActivity(context.packageManager) != null) {
+          try {
+            (activity ?: context).startActivity(intent)
+            return@Function true
+          } catch (_: Exception) {
+          }
+        }
+      }
+      val details = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+        .setData(Uri.parse("package:${context.packageName}"))
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      (activity ?: context).startActivity(details)
+      false
     }
 
     // ----- Administrateur de l'appareil -----

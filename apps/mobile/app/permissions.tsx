@@ -102,6 +102,13 @@ export default function PermissionsScreen() {
                 detail="Sinon Android peut arrêter Retrouve pour économiser la batterie (surtout Tecno, Infinix, Xiaomi, Samsung)."
                 action={!report?.batteryUnrestricted ? <Button label="Régler" variant="secondary" onPress={() => { RetrouveNative?.requestIgnoreBatteryOptimizations(); }} /> : undefined} />
             )}
+            {RetrouveNative && (
+              <StatusRow ok={report?.backgroundRestricted === true ? false : null} label="Démarrage automatique"
+                detail={report?.backgroundRestricted
+                  ? "Android a RESTREINT Retrouve : ouvrez les réglages et choisissez « Sans restriction » pour la batterie."
+                  : "Tecno, Infinix, itel, Xiaomi, Oppo… : autorisez le démarrage automatique et verrouillez Retrouve dans les applications récentes."}
+                action={<Button label="Ouvrir" variant="secondary" onPress={() => { RetrouveNative?.openAutostartSettings(); }} />} />
+            )}
           </Card>
 
           {RetrouveNative && (
