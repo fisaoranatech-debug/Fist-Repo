@@ -1,0 +1,24 @@
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+.env
+.env.local
+.env*.local
+*.log
+.DS_Store
+.turbo/
+.vercel/
+# Expo
+apps/mobile/.expo/
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/web-build/
+*.apk
+*.aab
+# Tests
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/uploads/

@@ -1,0 +1,22 @@
+{
+  "name": "@retrouve/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Types et schémas de validation partagés entre le site, l'API et l'app mobile",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

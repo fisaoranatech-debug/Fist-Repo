@@ -1,0 +1,25 @@
+{
+  "name": "retrouve",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Retrouve : localiser ses téléphones et appareils perdus (site web + app mobile)",
+  "workspaces": [
+    "packages/*",
+    "apps/web",
+    "apps/desktop-agent"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w apps/web",
+    "build": "npm run build -w apps/web",
+    "db:migrate": "npm run db:migrate -w apps/web",
+    "db:deploy": "npm run db:deploy -w apps/web",
+    "test": "npm run test -w packages/shared && npm run test -w apps/web",
+    "test:e2e": "npm run test:e2e -w apps/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "simulate": "node --experimental-strip-types scripts/simulate-device.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
