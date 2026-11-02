@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { authSecret } from "./lib/env";
 
 const PROTECTED = ["/appareils", "/alertes", "/parametres"];
 
@@ -8,9 +9,9 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (!PROTECTED.some((p) => pathname === p || pathname.startsWith(p + "/"))) return NextResponse.next();
   const token = req.cookies.get("retrouve_session")?.value;
-  if (token && process.env.AUTH_SECRET) {
+  if (token) {
     try {
-      await jwtVerify(token, new TextEncoder().encode(process.env.AUTH_SECRET), { algorithms: ["HS256"] });
+      await jwtVerify(token, await authSecret(), { algorithms: ["HS256"] });
       return NextResponse.next();
     } catch {
       /* jeton expiré ou falsifié */

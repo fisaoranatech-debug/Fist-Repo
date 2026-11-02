@@ -16,14 +16,14 @@ export async function signSession(userId: string, sessionVersion = 0): Promise<s
     .setSubject(userId)
     .setIssuedAt()
     .setExpirationTime(`${MAX_AGE_SEC}s`)
-    .sign(authSecret());
+    .sign(await authSecret());
 }
 
 /** Renvoie la session si le jeton est valide (signature et date), sinon null. */
 export async function verifySession(token: string | undefined | null): Promise<Session | null> {
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, authSecret(), { algorithms: ["HS256"] });
+    const { payload } = await jwtVerify(token, await authSecret(), { algorithms: ["HS256"] });
     if (typeof payload.sub !== "string") return null;
     return { userId: payload.sub, sv: typeof payload.sv === "number" ? payload.sv : 0 };
   } catch {

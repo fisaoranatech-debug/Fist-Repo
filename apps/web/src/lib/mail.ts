@@ -37,6 +37,11 @@ function transport(): Transporter {
 /** Envoie un email via Gmail (SMTP). Ne lève jamais d'erreur : renvoie false en cas d'échec. */
 export async function sendMail(mail: Mail): Promise<boolean> {
   if (!mailConfigured()) {
+    if (process.env.VERCEL) {
+      // En ligne : on ne garde ni n'affiche le contenu (il peut contenir un lien de réinitialisation).
+      console.warn(`Email non envoyé (SMTP_USER / SMTP_PASSWORD non configurés) : ${mail.subject}`);
+      return false;
+    }
     const box = sentMails();
     box.push(mail);
     if (box.length > 50) box.shift();
