@@ -1,0 +1,34 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.RECEIVE_SMS" />
+  <uses-permission android:name="android.permission.SEND_SMS" />
+  <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+  <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+  <application>
+    <!-- Administrateur de l'appareil : verrouiller, effacer, compter les mauvais codes. -->
+    <receiver
+      android:name="mg.retrouve.nativemodule.AdminReceiver"
+      android:exported="true"
+      android:label="Retrouve"
+      android:description="@string/retrouve_admin_description"
+      android:permission="android.permission.BIND_DEVICE_ADMIN">
+      <meta-data android:name="android.app.device_admin" android:resource="@xml/retrouve_device_admin" />
+      <intent-filter>
+        <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+        <action android:name="android.app.action.ACTION_PASSWORD_FAILED" />
+        <action android:name="android.app.action.ACTION_PASSWORD_SUCCEEDED" />
+      </intent-filter>
+    </receiver>
+
+    <!-- Commandes par SMS (LOCATE / RING suivi du code secret). -->
+    <receiver
+      android:name="mg.retrouve.nativemodule.SmsReceiver"
+      android:exported="true"
+      android:permission="android.permission.BROADCAST_SMS">
+      <intent-filter android:priority="999">
+        <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+      </intent-filter>
+    </receiver>
+  </application>
+</manifest>

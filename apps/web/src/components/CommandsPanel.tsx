@@ -145,8 +145,8 @@ function SensitiveDialog({
           </Alert>
         ) : (
           <>
-            <p className="text-sm text-muted">L&apos;écran se verrouille immédiatement. Vous pouvez définir un nouveau code PIN (Android).</p>
-            <Field label="Nouveau code PIN (optionnel)" hint="4 à 12 chiffres. Retenez-le bien !">
+            <p className="text-sm text-muted">L&apos;écran se verrouille immédiatement avec le code actuel du téléphone.</p>
+            <Field label="Nouveau code PIN (optionnel)" hint="Uniquement sur Android 6 et plus ancien (les versions récentes interdisent aux applications de changer le code). Retenez-le bien !">
               <Input name="pin" inputMode="numeric" pattern="\d{4,12}" autoComplete="off" />
             </Field>
           </>

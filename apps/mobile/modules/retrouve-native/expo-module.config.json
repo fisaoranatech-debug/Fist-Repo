@@ -1,0 +1,6 @@
+{
+  "platforms": ["android"],
+  "android": {
+    "modules": ["mg.retrouve.nativemodule.RetrouveNativeModule"]
+  }
+}

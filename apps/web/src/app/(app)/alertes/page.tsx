@@ -14,6 +14,7 @@ const ICONS: Record<AlertDTO["type"], string> = {
   LOW_BATTERY: "🪫",
   GEOFENCE_EXIT: "🚧",
   INTRUDER_PHOTO: "📸",
+  FAILED_UNLOCK: "🔐",
   OFFLINE: "📴",
 };
 
@@ -28,6 +29,8 @@ function describe(a: AlertDTO): string {
       return `L'appareil est sorti de la zone « ${d.zone ?? ""} ».`;
     case "INTRUDER_PHOTO":
       return `Photo prise après ${d.failedAttempts ?? "plusieurs"} mauvais codes de déverrouillage.`;
+    case "FAILED_UNLOCK":
+      return `${d.failedAttempts ?? "Plusieurs"} mauvais codes de déverrouillage. Quelqu'un essaie peut-être d'utiliser l'appareil.`;
     case "OFFLINE":
       return `Aucune nouvelle depuis ${d.lastSeenAt ? formatDateTime(String(d.lastSeenAt)) : "plus de 24 h"}. Téléphone éteint, sans réseau ou application arrêtée.`;
   }
