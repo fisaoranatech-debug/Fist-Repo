@@ -1,4 +1,10 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import type { ConfigContext, ExpoConfig } from "expo/config";
+
+// Fichier Firebase (notifications push instantanées). Utilisé automatiquement s'il est présent.
+const GOOGLE_SERVICES = "./google-services.json";
+const hasGoogleServices = existsSync(join(__dirname, GOOGLE_SERVICES));
 
 /**
  * Configuration de l'application Retrouve (Android en priorité).
@@ -17,6 +23,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   newArchEnabled: true,
   android: {
     package: "mg.retrouve.app",
+    ...(hasGoogleServices ? { googleServicesFile: GOOGLE_SERVICES } : {}),
     // Incrémenté à chaque construction GitHub Actions pour que les mises à jour s'installent.
     versionCode: Number(process.env.ANDROID_VERSION_CODE) || 1,
     adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundColor: "#2453e6" },
