@@ -19,6 +19,11 @@ class AdminReceiver : DeviceAdminReceiver() {
   }
 
   override fun onPasswordFailed(context: Context, intent: Intent, user: UserHandle) {
+    // Mode perdu : photo + position à CHAQUE mauvais code du téléphone.
+    if (LostUnlock.active(context)) {
+      LostUnlock.onWrongAttempt(context, "devicePin")
+      return
+    }
     val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
     val attempts = try {
       dpm.currentFailedPasswordAttempts

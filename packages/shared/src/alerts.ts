@@ -26,7 +26,7 @@ export function describeAlert(type: AlertType, data: Record<string, unknown> | n
     case "GEOFENCE_EXIT":
       return `L'appareil est sorti de la zone « ${d.zone ?? ""} ».`;
     case "INTRUDER_PHOTO":
-      return `Photo prise après ${d.failedAttempts ?? "plusieurs"} mauvais codes de déverrouillage.`;
+      return `Photo de la personne qui tente de déverrouiller le téléphone (mauvais code n°${d.failedAttempts ?? "?"}${d.source === "lockScreen" ? ", code Retrouve" : d.source === "devicePin" ? ", code du téléphone" : ""}).`;
     case "FAILED_UNLOCK":
       return `${d.failedAttempts ?? "Plusieurs"} mauvais codes de déverrouillage. Quelqu'un essaie peut-être d'utiliser l'appareil.`;
     case "OFFLINE":

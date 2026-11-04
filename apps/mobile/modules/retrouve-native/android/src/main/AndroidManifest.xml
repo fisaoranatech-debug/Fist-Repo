@@ -15,6 +15,10 @@
   <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
   <!-- Mise à jour intégrée : installer la nouvelle version téléchargée. -->
   <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+  <!-- Mode perdu : photo de la personne qui tente de déverrouiller, écran sur le verrouillage. -->
+  <uses-permission android:name="android.permission.CAMERA" />
+  <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+  <uses-feature android:name="android.hardware.camera.front" android:required="false" />
 
   <application>
     <!-- Administrateur de l'appareil : verrouiller, effacer, compter les mauvais codes. -->
@@ -38,6 +42,18 @@
       android:exported="false"
       android:foregroundServiceType="location"
       android:stopWithTask="false" />
+
+    <!-- Écran du mode perdu par-dessus l'écran de verrouillage. -->
+    <activity
+      android:name="mg.retrouve.nativemodule.LostActivity"
+      android:exported="false"
+      android:excludeFromRecents="true"
+      android:launchMode="singleTask"
+      android:taskAffinity="mg.retrouve.lost"
+      android:showWhenLocked="true"
+      android:turnScreenOn="true"
+      android:screenOrientation="portrait"
+      android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen" />
 
     <!-- Mise à jour intégrée : partage de l'APK téléchargé avec l'installateur. -->
     <provider

@@ -48,9 +48,15 @@ export default function AlertsPage() {
                     <Link className="font-medium text-brand-600" href={`/appareils/${a.deviceId}`}>{a.deviceName}</Link> · {describeAlert(a.type, a.data)}
                   </p>
                   <p className="mt-1 text-xs text-muted" title={formatDateTime(a.createdAt)}>{timeAgo(a.createdAt)}</p>
+                  {a.hasPhoto && (
+                    <button onClick={() => setPhoto(a.id)} className="mt-2 block" aria-label="Agrandir la photo">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={`/api/alerts/${a.id}/photo`} alt="Photo prise par le téléphone" loading="lazy" className="h-28 w-auto rounded-lg border border-app object-cover" />
+                    </button>
+                  )}
                   <div className="mt-2 flex gap-3 text-sm">
                     {a.hasPhoto && (
-                      <button className="font-semibold text-brand-600" onClick={() => setPhoto(a.id)}>Voir la photo</button>
+                      <button className="font-semibold text-brand-600" onClick={() => setPhoto(a.id)}>Agrandir la photo</button>
                     )}
                     {typeof d.lat === "number" && typeof d.lng === "number" && (
                       <a className="font-semibold text-brand-600" target="_blank" rel="noreferrer" href={mapLink(d.lat, d.lng)}>Voir sur la carte ↗</a>

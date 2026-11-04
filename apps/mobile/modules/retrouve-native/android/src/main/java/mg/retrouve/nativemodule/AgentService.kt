@@ -85,10 +85,18 @@ class AgentService : Service() {
 
   override fun onBind(intent: Intent?): IBinder? = null
 
+  /** Mode perdu : à chaque allumage de l'écran, l'écran Retrouve s'affiche sur le verrouillage. */
+  private val screenOn = object : android.content.BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+      if (LostUnlock.active(context)) LostUnlock.showLostScreen(context)
+    }
+  }
+
   override fun onCreate() {
     super.onCreate()
     thread = HandlerThread("retrouve-agent").also { it.start() }
     handler = Handler(thread.looper)
+    registerReceiver(screenOn, android.content.IntentFilter(Intent.ACTION_SCREEN_ON))
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -121,6 +129,10 @@ class AgentService : Service() {
 
   override fun onDestroy() {
     running = false
+    try {
+      unregisterReceiver(screenOn)
+    } catch (_: Exception) {
+    }
     handler.removeCallbacksAndMessages(null)
     listener?.let { (getSystemService(Context.LOCATION_SERVICE) as LocationManager).removeUpdates(it) }
     fusedListener?.let { FusedLocation.removeUpdates(this, it) }

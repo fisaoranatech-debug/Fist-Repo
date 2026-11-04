@@ -104,6 +104,7 @@ internal object AgentCore {
         val state = JSONObject(ApiClient.request(ctx, "POST", "/api/agent/heartbeat", heartbeatBody(ctx)))
         applyState(ctx, state)
         if (state.optInt("pendingCommands", 0) > 0) runCommands(ctx)
+        IntruderReporter.flush(ctx)
         try {
           Updater.maybeNotify(ctx)
         } catch (_: Exception) {
@@ -196,6 +197,7 @@ internal object AgentCore {
   fun capabilities(context: Context): List<String> {
     val caps = mutableListOf("ring", "lostMode", "locate", "nativeAgent")
     if (LockOverlay.canDraw(context)) caps.add("lockScreen")
+    if (IntruderCamera.hasPermission(context)) caps.add("intruderPhoto")
     if (context.checkSelfPermission(Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) caps.add("smsSend")
     val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
     if (dpm.isAdminActive(AdminReceiver.component(context))) caps.add("deviceAdmin")
@@ -231,7 +233,13 @@ internal object AgentCore {
         ?: "Ce téléphone a été perdu. Merci de contacter son propriétaire."
       showLostNotification(context, msg, Prefs.contactPhone(context))
       if (lockHash != null && lockHash != prefs.getString("unlockedFor", null)) {
+        prefs.edit().putString("lostMessage", msg).apply()
         LockOverlay.show(context, deviceId, lockHash, msg, Prefs.contactPhone(context))
+        // Première fois pour ce code : afficher tout de suite l'écran sur le verrouillage.
+        if (prefs.getString("lostShownFor", null) != lockHash) {
+          prefs.edit().putString("lostShownFor", lockHash).putInt("wrongAttempts", 0).apply()
+          LostUnlock.showLostScreen(context)
+        }
       }
     } else {
       hideLostNotification(context)
@@ -275,6 +283,10 @@ internal object AgentCore {
             // Écran de blocage Retrouve + verrouillage du téléphone (si l'anti-vol est activé).
             payload?.optString("lockHash")?.takeIf { it.isNotEmpty() }?.let { hash ->
               LockOverlay.show(context, Prefs.get(context).getString("deviceId", "") ?: "", hash, msg, phone)
+              if (Prefs.get(context).getString("lostShownFor", null) != hash) {
+                Prefs.get(context).edit().putString("lostShownFor", hash).putInt("wrongAttempts", 0).apply()
+                LostUnlock.showLostScreen(context)
+              }
             }
             val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             if (dpm.isAdminActive(AdminReceiver.component(context))) {
@@ -357,6 +369,17 @@ internal object AgentCore {
       .setOngoing(true)
       .setVisibility(android.app.Notification.VISIBILITY_PUBLIC)
       .setContentIntent(launchIntent(context))
+      .apply {
+        // Sur l'écran éteint / verrouillé, Android ouvre directement l'écran Retrouve.
+        if (LostUnlock.active(context)) {
+          val fsi = PendingIntent.getActivity(
+            context, 1,
+            Intent(context, LostActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+          )
+          setFullScreenIntent(fsi, true)
+        }
+      }
       .build()
     try {
       nm.notify(LOST_NOTIFICATION_ID, notification)

@@ -24,12 +24,18 @@ async function smsGranted(): Promise<boolean | null> {
 export default function PermissionsScreen() {
   const [report, setReport] = useState<PermissionReport | null>(null);
   const [sms, setSms] = useState<boolean | null>(null);
+  const [camera, setCamera] = useState<boolean | null>(null);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setReport(await permissionReport());
     setSms(await smsGranted());
+    setCamera(
+      Platform.OS === "android" && RetrouveNative
+        ? await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.CAMERA)
+        : null,
+    );
   }, []);
 
   useFocusEffect(
@@ -123,6 +129,12 @@ export default function PermissionsScreen() {
               <StatusRow ok={report?.lockScreen ?? null} label="Écran de blocage (mode perdu)"
                 detail="Bloque le téléphone par-dessus toutes les applications ; seul le code affiché sur le site le débloque. Activez « Afficher par-dessus d'autres applications »."
                 action={!report?.lockScreen ? <Button label="Activer" variant="secondary" onPress={() => RetrouveNative?.requestOverlayPermission()} /> : undefined} />
+              <StatusRow ok={camera} label="Photo de l'intrus (mode perdu)"
+                detail="En mode perdu, chaque mauvais code de déverrouillage déclenche une photo (caméra avant) envoyée avec la position."
+                action={!camera ? <Button label="Autoriser" variant="secondary" onPress={async () => {
+                  await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA);
+                  await refresh();
+                }} /> : undefined} />
               <StatusRow ok={sms} label="SMS (sans internet)"
                 detail="Commandes LOCATE / RING par SMS, et SMS d'urgence automatique (changement de carte SIM, mode perdu sans internet) à activer sur le site."
                 action={!sms ? <Button label="Autoriser" variant="secondary" onPress={askSms} /> : undefined} />
