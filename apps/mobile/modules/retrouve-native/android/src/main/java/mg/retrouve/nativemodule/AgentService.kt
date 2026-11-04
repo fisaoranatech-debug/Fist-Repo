@@ -61,6 +61,7 @@ class AgentService : Service() {
   private lateinit var thread: HandlerThread
   private lateinit var handler: Handler
   private var listener: LocationListener? = null
+  private var fusedListener: com.google.android.gms.location.LocationListener? = null
   private var registeredInterval = 0
   private var registeredLost = false
   private var lastLocationSync = 0L
@@ -122,6 +123,7 @@ class AgentService : Service() {
     running = false
     handler.removeCallbacksAndMessages(null)
     listener?.let { (getSystemService(Context.LOCATION_SERVICE) as LocationManager).removeUpdates(it) }
+    fusedListener?.let { FusedLocation.removeUpdates(this, it) }
     thread.quitSafely()
     super.onDestroy()
   }
@@ -164,17 +166,26 @@ class AgentService : Service() {
     if (!granted) return
     val interval = Prefs.intervalSec(this)
     val lost = Prefs.lostMode(this)
-    if (listener != null && interval == registeredInterval && lost == registeredLost) return
+    if ((listener != null || fusedListener != null) && interval == registeredInterval && lost == registeredLost) return
     val lm = getSystemService(Context.LOCATION_SERVICE) as LocationManager
     listener?.let { lm.removeUpdates(it) }
-    val l = object : LocationListener {
-      override fun onLocationChanged(location: Location) {
-        // Une position par intervalle suffit (plusieurs fournisseurs peuvent répondre).
-        val now = System.currentTimeMillis()
-        if (now - lastLocationSync < Prefs.intervalSec(this@AgentService) * 800L) return
-        lastLocationSync = now
-        handler.post { syncWithWakeLock(location, false) }
+    listener = null
+    fusedListener?.let { FusedLocation.removeUpdates(this, it) }
+    fusedListener = null
+
+    // 1. Localisation de Google (GPS + Wi-Fi) si disponible : précise même à l'intérieur.
+    if (FusedLocation.available(this)) {
+      val fl = com.google.android.gms.location.LocationListener { location -> onNewLocation(location) }
+      if (FusedLocation.requestUpdates(this, interval * 1000L, lost || interval <= 60, fl, thread.looper)) {
+        fusedListener = fl
+        registeredInterval = interval
+        registeredLost = lost
+        return
       }
+    }
+    // 2. Repli : système de localisation d'Android.
+    val l = object : LocationListener {
+      override fun onLocationChanged(location: Location) = onNewLocation(location)
 
       @Deprecated("Deprecated in Java")
       override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
@@ -198,6 +209,14 @@ class AgentService : Service() {
     listener = l
     registeredInterval = interval
     registeredLost = lost
+  }
+
+  /** Une position par intervalle suffit (plusieurs fournisseurs peuvent répondre). */
+  private fun onNewLocation(location: Location) {
+    val now = System.currentTimeMillis()
+    if (now - lastLocationSync < Prefs.intervalSec(this) * 800L) return
+    lastLocationSync = now
+    handler.post { syncWithWakeLock(location, false) }
   }
 
   private fun syncWithWakeLock(location: Location?, locate: Boolean) {

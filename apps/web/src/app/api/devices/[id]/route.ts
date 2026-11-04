@@ -35,6 +35,7 @@ export const PATCH = route<Ctx>(async (req, { params }) => {
       ...(input.lostMessage !== undefined ? { lostMessage: input.lostMessage || null } : {}),
       ...(input.smsSecret !== undefined ? { smsSecret: input.smsSecret || null } : {}),
       ...(input.trackingIntervalSec !== undefined ? { trackingIntervalSec: input.trackingIntervalSec } : {}),
+      ...(input.smsAlerts !== undefined ? { smsAlerts: input.smsAlerts } : {}),
     },
     include: { user: { select: { name: true } } },
   });

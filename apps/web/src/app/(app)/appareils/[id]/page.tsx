@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import useSWR from "swr";
-import { LABELS, type DeviceDTO, type GeofenceDTO, type LocationDTO } from "@retrouve/shared";
+import { LABELS, PRECISE_ACCURACY_M, type DeviceDTO, type GeofenceDTO, type LocationDTO } from "@retrouve/shared";
 import { CommandsPanel } from "@/components/CommandsPanel";
 import { DeviceForm } from "@/components/DeviceForm";
 import { GeofencesPanel } from "@/components/GeofencesPanel";
@@ -29,6 +29,7 @@ export default function DevicePage() {
   const [picking, setPicking] = useState(false);
   const [draft, setDraft] = useState<{ lat: number; lng: number; radiusM: number } | null>(null);
   const [tab, setTab] = useState<"infos" | "zones" | "partage" | "association">("infos");
+  const [showCoarse, setShowCoarse] = useState(false);
 
   const { data: device, error, mutate } = useSWR<DeviceDTO>(`/api/devices/${id}`, fetcher, { refreshInterval: 5_000 });
 
@@ -59,6 +60,12 @@ export default function DevicePage() {
 
   const owner = device.access === "OWNER";
   const last = device.lastLocation;
+  // Trajet : seulement les positions précises (GPS / Wi-Fi), sauf si l'utilisateur demande tout.
+  const allTrack = track ?? [];
+  const preciseTrack = allTrack.filter((t) => t.accuracy == null || t.accuracy <= PRECISE_ACCURACY_M);
+  const shownTrack = showCoarse ? allTrack : preciseTrack;
+  const coarseCount = allTrack.length - preciseTrack.length;
+  const lastIsCoarse = !!last && last.accuracy != null && last.accuracy > PRECISE_ACCURACY_M;
 
   async function remove() {
     if (!confirm(`Supprimer « ${device!.name} » et tout son historique ? L'application sur l'appareil sera déconnectée.`)) return;
@@ -134,6 +141,7 @@ export default function DevicePage() {
                   <>
                     <b>Dernière position :</b> {formatDateTime(last.recordedAt)} ({timeAgo(last.recordedAt)})
                     {last.accuracy != null && <> · ±{Math.round(last.accuracy)} m</>} · {LABELS.source[last.source]}
+                    {lastIsCoarse && <span className="text-amber-600"> · approximative (le téléphone est sans doute à l&apos;intérieur)</span>}
                   </>
                 ) : (
                   <span className="text-muted">Aucune position reçue pour l&apos;instant.</span>
@@ -154,7 +162,7 @@ export default function DevicePage() {
             <Map
               className={cx("h-[380px] w-full rounded-xl lg:h-[480px]", picking && "cursor-crosshair")}
               devices={last ? [{ id: device.id, name: device.name, type: device.type, lat: last.lat, lng: last.lng, accuracy: last.accuracy, lost: device.lostMode, recordedAt: last.recordedAt }] : []}
-              track={track ?? []}
+              track={shownTrack}
               geofences={fences ?? []}
               draftFence={draft}
               onMapClick={picking ? (lat, lng) => setDraft({ lat, lng, radiusM: draft?.radiusM ?? 300 }) : undefined}
@@ -168,7 +176,13 @@ export default function DevicePage() {
                 <button className="text-muted hover:underline" onClick={() => navigator.clipboard?.writeText(`${last.lat.toFixed(6)}, ${last.lng.toFixed(6)}`)}>
                   Copier les coordonnées
                 </button>
-                <span className="text-muted">· {track?.length ?? 0} positions sur la période</span>
+                <span className="text-muted">· {preciseTrack.length} positions précises sur la période</span>
+                {coarseCount > 0 && (
+                  <label className="flex items-center gap-1.5 text-muted">
+                    <input type="checkbox" checked={showCoarse} onChange={(e) => setShowCoarse(e.target.checked)} className="accent-[var(--color-brand-600)]" />
+                    afficher aussi les {coarseCount} positions approximatives (± plus de {PRECISE_ACCURACY_M} m)
+                  </label>
+                )}
               </div>
             )}
           </Card>

@@ -86,6 +86,11 @@ internal object AgentCore {
       val ctx = context.applicationContext
       val prefs = Prefs.get(ctx)
       if (Prefs.token(ctx) == null || Prefs.apiUrl(ctx) == null) return status(ctx)
+      // SMS d'urgence : vérifié à chaque cycle, même sans internet.
+      try {
+        EmergencySms.check(ctx)
+      } catch (_: Exception) {
+      }
       try {
         val (battery, charging) = ApiClient.battery(ctx)
         var loc = location
@@ -93,7 +98,7 @@ internal object AgentCore {
         if (loc == null && (forceLocate || critical || locationDue(ctx))) {
           loc = LocationHelper.currentBlocking(ctx, 25_000)
         }
-        if (loc != null) enqueue(ctx, ApiClient.point(ctx, loc, "GPS"))
+        if (loc != null && keepLocation(ctx, loc)) enqueue(ctx, ApiClient.point(ctx, loc, LocationHelper.sourceOf(loc)))
         flushQueue(ctx)
 
         val state = JSONObject(ApiClient.request(ctx, "POST", "/api/agent/heartbeat", heartbeatBody(ctx)))
@@ -108,6 +113,7 @@ internal object AgentCore {
           .putBoolean("lastSyncOk", true)
           .putString("lastError", null)
           .putBoolean("revoked", false)
+          .putLong("lastOkAt", System.currentTimeMillis())
           .apply()
       } catch (e: ApiException) {
         if (e.status == 401) {
@@ -130,6 +136,30 @@ internal object AgentCore {
       }
       return status(ctx)
     }
+  }
+
+  /**
+   * Ignore une position approximative (> 150 m) si une position précise récente (10 min)
+   * existe au même endroit : évite les « sauts » sur la carte quand le téléphone est à l'intérieur.
+   */
+  private fun keepLocation(context: Context, loc: Location): Boolean {
+    val prefs = Prefs.get(context)
+    val acc = if (loc.hasAccuracy()) loc.accuracy else 9999f
+    if (acc <= 100f) {
+      prefs.edit()
+        .putString("lastPrecise", "${loc.latitude},${loc.longitude},${loc.time}")
+        .apply()
+      return true
+    }
+    if (acc <= 150f) return true
+    val parts = prefs.getString("lastPrecise", null)?.split(",") ?: return true
+    if (parts.size != 3) return true
+    val age = System.currentTimeMillis() - (parts[2].toLongOrNull() ?: 0L)
+    if (age > 10 * 60_000L) return true
+    val res = FloatArray(1)
+    Location.distanceBetween(parts[0].toDouble(), parts[1].toDouble(), loc.latitude, loc.longitude, res)
+    // Toujours à portée de la position précise : rien de nouveau, on n'envoie pas ce point flou.
+    return res[0] > acc
   }
 
   private fun locationDue(context: Context): Boolean {
@@ -166,6 +196,7 @@ internal object AgentCore {
   fun capabilities(context: Context): List<String> {
     val caps = mutableListOf("ring", "lostMode", "locate", "nativeAgent")
     if (LockOverlay.canDraw(context)) caps.add("lockScreen")
+    if (context.checkSelfPermission(Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) caps.add("smsSend")
     val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
     if (dpm.isAdminActive(AdminReceiver.component(context))) caps.add("deviceAdmin")
     if (context.checkSelfPermission(Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED) caps.add("sms")
@@ -190,6 +221,7 @@ internal object AgentCore {
       .putInt("intervalSec", interval)
       .putString("smsSecret", state.optString("smsSecret").takeIf { it.isNotEmpty() && it != "null" })
       .putString("contactPhone", state.optString("contactPhone").takeIf { it.isNotEmpty() && it != "null" })
+      .putBoolean("smsAlerts", state.optBoolean("smsAlerts", false))
       .apply()
     val lockHash = state.optString("lockHash").takeIf { it.isNotEmpty() && it != "null" }
     val deviceId = state.optString("deviceId")

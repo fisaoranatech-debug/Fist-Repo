@@ -103,6 +103,7 @@ export const deviceCreateSchema = z.object({
 export type DeviceCreateInput = z.infer<typeof deviceCreateSchema>;
 
 export const deviceUpdateSchema = deviceCreateSchema.partial().extend({
+  smsAlerts: z.union([z.boolean(), z.literal("on"), z.literal("off")]).transform((v) => v === true || v === "on").optional(),
   trackingIntervalSec: z.coerce
     .number()
     .refine((v) => [60, 120, 300, 600, 900].includes(v), "Fréquence non autorisée")

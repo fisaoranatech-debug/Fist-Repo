@@ -48,6 +48,7 @@ export function toDeviceDTO(
     hasSmsSecret: !!d.smsSecret,
     instantWakeUp: !!d.pushToken,
     trackingIntervalSec: d.trackingIntervalSec,
+    smsAlerts: d.smsAlerts,
     live: !!d.liveUntil && d.liveUntil > new Date(),
     unlockCode: access !== "VIEWER" && d.lostMode ? d.unlockCode : null,
     access,

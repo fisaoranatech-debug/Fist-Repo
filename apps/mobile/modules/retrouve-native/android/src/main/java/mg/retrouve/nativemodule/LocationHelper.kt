@@ -38,6 +38,27 @@ internal object LocationHelper {
    */
   @Suppress("MissingPermission")
   fun current(context: Context, timeoutMs: Long, callback: (Location?) -> Unit) {
+    if (hasPermission(context) && FusedLocation.available(context)) {
+      // Localisation de Google (GPS + Wi-Fi) avec délai maximum, puis repli sur le système Android.
+      var done = false
+      val lock = Any()
+      val finish = { loc: Location? ->
+        synchronized(lock) {
+          if (!done) {
+            done = true
+            if (loc != null) callback(loc) else currentSystem(context, timeoutMs / 2, callback)
+          }
+        }
+      }
+      Handler(Looper.getMainLooper()).postDelayed({ finish(null) }, timeoutMs)
+      FusedLocation.current(context, true) { loc -> finish(loc) }
+      return
+    }
+    currentSystem(context, timeoutMs, callback)
+  }
+
+  @Suppress("MissingPermission")
+  private fun currentSystem(context: Context, timeoutMs: Long, callback: (Location?) -> Unit) {
     val fallback = lastKnown(context)
     if (!hasPermission(context) || Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
       callback(fallback)
@@ -72,6 +93,13 @@ internal object LocationHelper {
     } catch (_: Exception) {
       finish(null)
     }
+  }
+
+  /** Source affichée sur le site : GPS si le fix est précis, sinon réseau (Wi-Fi / antennes). */
+  fun sourceOf(loc: Location): String = when {
+    loc.provider == LocationManager.GPS_PROVIDER -> "GPS"
+    loc.hasAccuracy() && loc.accuracy <= 30f -> "GPS"
+    else -> "NETWORK"
   }
 
   fun mapLink(loc: Location): String =

@@ -13,3 +13,8 @@ android {
     versionName '0.1.0'
   }
 }
+
+dependencies {
+  // Même version que expo-location (localisation « fusionnée » GPS + Wi-Fi + antennes de Google).
+  implementation 'com.google.android.gms:play-services-location:21.0.1'
+}

@@ -73,6 +73,7 @@ export const POST = route(async (req) => {
     pendingCommands: pending,
     intervalSec: trackingInterval(updated),
     lockHash: updated.lostMode && updated.unlockCode ? unlockHash(updated.id, updated.unlockCode) : null,
+    smsAlerts: updated.smsAlerts,
   };
   return json(state);
 });

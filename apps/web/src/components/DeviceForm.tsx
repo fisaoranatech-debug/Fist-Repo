@@ -82,6 +82,20 @@ export function DeviceForm({ device, onSaved, submitLabel }: { device?: DeviceDT
         </Field>
       )}
       {device && (
+        <div className="surface-2 space-y-1 rounded-xl p-3">
+          <input type="hidden" name="smsAlerts" value="off" />
+          <label className="flex items-start gap-2.5 text-sm">
+            <input type="checkbox" name="smsAlerts" value="on" defaultChecked={device.smsAlerts} className="mt-0.5 size-4 accent-[var(--color-brand-600)]" />
+            <span>
+              <b>SMS d&apos;urgence automatique</b> (Android) : le téléphone envoie lui-même un SMS avec sa position à votre
+              numéro de contact <b>quand une autre carte SIM est insérée</b>, et <b>en mode perdu quand il n&apos;a plus
+              internet</b> (au plus un SMS toutes les 30 min). Fonctionne sans données mobiles ; le SMS est payé par la carte
+              SIM présente dans le téléphone.
+            </span>
+          </label>
+        </div>
+      )}
+      {device && (
         <Field label="Message du mode perdu" error={fe("lostMessage")} hint="Affiché sur l'écran de l'appareil en mode perdu.">
           <Input name="lostMessage" defaultValue={device.lostMessage ?? ""} placeholder="Ce téléphone a été perdu. Merci d'appeler son propriétaire." />
         </Field>

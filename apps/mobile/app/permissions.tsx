@@ -61,6 +61,8 @@ export default function PermissionsScreen() {
     await PermissionsAndroid.requestMultiple([
       PermissionsAndroid.PERMISSIONS.RECEIVE_SMS,
       PermissionsAndroid.PERMISSIONS.SEND_SMS,
+      // Reconnaître une autre carte SIM même chez le même opérateur (SMS d'urgence).
+      PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE,
     ]);
     await refresh();
   }
@@ -121,8 +123,8 @@ export default function PermissionsScreen() {
               <StatusRow ok={report?.lockScreen ?? null} label="Écran de blocage (mode perdu)"
                 detail="Bloque le téléphone par-dessus toutes les applications ; seul le code affiché sur le site le débloque. Activez « Afficher par-dessus d'autres applications »."
                 action={!report?.lockScreen ? <Button label="Activer" variant="secondary" onPress={() => RetrouveNative?.requestOverlayPermission()} /> : undefined} />
-              <StatusRow ok={sms} label="Commandes par SMS"
-                detail="Retrouver le téléphone sans internet (LOCATE + code secret défini sur le site)."
+              <StatusRow ok={sms} label="SMS (sans internet)"
+                detail="Commandes LOCATE / RING par SMS, et SMS d'urgence automatique (changement de carte SIM, mode perdu sans internet) à activer sur le site."
                 action={!sms ? <Button label="Autoriser" variant="secondary" onPress={askSms} /> : undefined} />
             </Card>
           )}

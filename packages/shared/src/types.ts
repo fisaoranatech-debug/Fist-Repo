@@ -41,6 +41,8 @@ export interface DeviceDTO {
   trackingIntervalSec: number;
   /** Suivi en direct en cours (positions toutes les 15 s). */
   live: boolean;
+  /** SMS d'urgence automatique activé. */
+  smsAlerts: boolean;
   /** Code de déblocage du mode perdu (propriétaire et contrôleurs uniquement). */
   unlockCode: string | null;
   /** Rôle de l'utilisateur courant sur cet appareil. */
@@ -127,7 +129,12 @@ export interface AgentState {
    * Si présente, le téléphone affiche l'écran de blocage Retrouve.
    */
   lockHash: string | null;
+  /** SMS d'urgence automatique activé par le propriétaire. */
+  smsAlerts: boolean;
 }
+
+/** Au-delà de cette précision (mètres), une position est considérée comme approximative. */
+export const PRECISE_ACCURACY_M = 150;
 
 /** Intervalles d'envoi des positions. */
 export const TRACKING_INTERVAL_SEC = { normal: 300, lost: 60, live: 15 } as const;

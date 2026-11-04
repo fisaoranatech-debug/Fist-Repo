@@ -72,7 +72,8 @@ internal object ApiClient {
 
   /** Envoie une position ; en cas d'échec réseau, elle est gardée et renvoyée plus tard. */
   fun sendLocation(context: Context, loc: Location, source: String) {
-    AgentCore.enqueue(context, point(context, loc, source))
+    val src = if (source == "GPS") LocationHelper.sourceOf(loc) else source
+    AgentCore.enqueue(context, point(context, loc, src))
     AgentCore.flushQueue(context)
   }
 

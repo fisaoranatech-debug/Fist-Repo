@@ -128,6 +128,8 @@ model Device {
   lostMode     Boolean        @default(false)
   /// Intervalle normal entre deux positions (secondes), réglable par le propriétaire.
   trackingIntervalSec Int     @default(300)
+  /// SMS d'urgence automatique (changement de SIM, mode perdu sans internet) vers le numéro de contact.
+  smsAlerts    Boolean        @default(false)
   /// Suivi en direct (positions toutes les 15 s) tant que quelqu'un regarde la fiche sur le site.
   liveUntil    DateTime?
   lostMessage  String?

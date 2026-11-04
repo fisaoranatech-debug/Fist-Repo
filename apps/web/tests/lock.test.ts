@@ -57,3 +57,16 @@ describe("écran de blocage du mode perdu", () => {
     expect((await call(device.GET, { cookie: kid.cookie, params: { id: deviceId } })).data.unlockCode).toBeNull();
   });
 });
+
+describe("SMS d'urgence", () => {
+  it("le propriétaire l'active, le téléphone le reçoit dans son état", async () => {
+    const { cookie } = await newUser();
+    const { deviceId, token } = await newPairedDevice(cookie);
+    expect((await call(heartbeat.POST, { token, body: {} })).data.smsAlerts).toBe(false);
+    const r = await call(device.PATCH, { method: "PATCH", cookie, params: { id: deviceId }, body: { smsAlerts: "on" } });
+    expect(r.data.smsAlerts).toBe(true);
+    expect((await call(heartbeat.POST, { token, body: {} })).data.smsAlerts).toBe(true);
+    await call(device.PATCH, { method: "PATCH", cookie, params: { id: deviceId }, body: { smsAlerts: "off" } });
+    expect((await call(heartbeat.POST, { token, body: {} })).data.smsAlerts).toBe(false);
+  });
+});
