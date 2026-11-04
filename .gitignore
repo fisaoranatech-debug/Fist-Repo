@@ -22,3 +22,5 @@ apps/mobile/web-build/
 apps/web/test-results/
 apps/web/playwright-report/
 apps/web/uploads/
+*.tsbuildinfo
+next-env.d.ts

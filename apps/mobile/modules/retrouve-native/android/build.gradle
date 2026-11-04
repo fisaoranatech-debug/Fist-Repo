@@ -1,0 +1,20 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'mg.retrouve'
+version = '0.1.0'
+
+android {
+  namespace "mg.retrouve.nativemodule"
+  defaultConfig {
+    versionCode 1
+    versionName '0.1.0'
+  }
+}
+
+dependencies {
+  // Même version que expo-location (localisation « fusionnée » GPS + Wi-Fi + antennes de Google).
+  implementation 'com.google.android.gms:play-services-location:21.0.1'
+}

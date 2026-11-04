@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="retrouve_admin_description">Permet de verrouiller ou d\'effacer ce téléphone à distance s\'il est perdu ou volé, et de signaler les mauvais codes de déverrouillage.</string>
+</resources>

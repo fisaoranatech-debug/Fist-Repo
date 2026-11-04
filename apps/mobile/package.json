@@ -1,0 +1,47 @@
+{
+  "name": "@retrouve/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "android": "expo run:android",
+    "prebuild": "expo prebuild --platform android",
+    "build:apk": "eas build --platform android --profile preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "doctor": "expo-doctor",
+    "ios": "expo run:ios"
+  },
+  "dependencies": {
+    "@retrouve/shared": "file:../../packages/shared",
+    "expo": "~54.0.38",
+    "expo-application": "~7.0.8",
+    "expo-background-task": "~1.0.10",
+    "expo-battery": "~10.0.8",
+    "expo-build-properties": "~1.0.10",
+    "expo-cellular": "~8.0.8",
+    "expo-constants": "~18.0.14",
+    "expo-dev-client": "~6.0.21",
+    "expo-device": "~8.0.10",
+    "expo-intent-launcher": "~13.0.8",
+    "expo-linking": "~8.0.12",
+    "expo-location": "~19.0.8",
+    "expo-notifications": "~0.32.17",
+    "expo-router": "~6.0.24",
+    "expo-secure-store": "~15.0.8",
+    "expo-sqlite": "~16.0.10",
+    "expo-status-bar": "~3.0.9",
+    "expo-task-manager": "~14.0.9",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.10",
+    "typescript": "~5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

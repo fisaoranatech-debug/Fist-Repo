@@ -38,11 +38,18 @@ const phone = z
   .regex(/^[+\d][\d\s().-]*$/, "Numéro de téléphone invalide");
 
 // ---------- Comptes ----------
+const newPassword = z.string().min(8, "8 caractères minimum").max(200, "200 caractères maximum");
+
 export const registerSchema = z.object({
   name: z.string().trim().min(1, "Nom requis").max(80),
   email: z.string().trim().toLowerCase().email("Email invalide").max(160),
-  password: z.string().min(8, "8 caractères minimum").max(200),
+  password: newPassword,
   contactPhone: phone.optional().or(z.literal("")),
+  acceptTerms: z
+    .union([z.literal(true), z.literal("on"), z.literal("true")], {
+      error: "Vous devez accepter les conditions d'utilisation et la politique de confidentialité",
+    })
+    .transform(() => true as const),
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
 
@@ -55,6 +62,34 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export const profileUpdateSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
   contactPhone: phone.optional().or(z.literal("")),
+  emailAlerts: z.boolean().optional(),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Email invalide"),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(20, "Lien invalide").max(200),
+  password: newPassword,
+});
+
+export const passwordChangeSchema = z.object({
+  currentPassword: z.string().min(1, "Mot de passe actuel requis"),
+  newPassword,
+});
+
+export const accountDeleteSchema = z.object({
+  password: z.string().min(1, "Mot de passe requis"),
+});
+
+/** Abonnement web push tel que fourni par le navigateur (PushSubscription.toJSON()). */
+export const pushSubscriptionSchema = z.object({
+  endpoint: z.string().url().max(1000).startsWith("https://"),
+  keys: z.object({
+    p256dh: z.string().min(10).max(200),
+    auth: z.string().min(8).max(100),
+  }),
 });
 
 // ---------- Appareils (côté utilisateur) ----------
@@ -68,6 +103,11 @@ export const deviceCreateSchema = z.object({
 export type DeviceCreateInput = z.infer<typeof deviceCreateSchema>;
 
 export const deviceUpdateSchema = deviceCreateSchema.partial().extend({
+  smsAlerts: z.union([z.boolean(), z.literal("on"), z.literal("off")]).transform((v) => v === true || v === "on").optional(),
+  trackingIntervalSec: z.coerce
+    .number()
+    .refine((v) => [60, 120, 300, 600, 900].includes(v), "Fréquence non autorisée")
+    .optional(),
   lostMessage: z.string().trim().max(300).optional(),
   smsSecret: z
     .string()

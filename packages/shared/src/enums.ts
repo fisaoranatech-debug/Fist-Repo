@@ -25,6 +25,7 @@ export const ALERT_TYPES = [
   "LOW_BATTERY",
   "GEOFENCE_EXIT",
   "INTRUDER_PHOTO",
+  "FAILED_UNLOCK",
   "OFFLINE",
 ] as const;
 export type AlertType = (typeof ALERT_TYPES)[number];
@@ -60,6 +61,7 @@ export const LABELS = {
     LOW_BATTERY: "Batterie faible",
     GEOFENCE_EXIT: "Sortie de zone",
     INTRUDER_PHOTO: "Photo d'un intrus",
+    FAILED_UNLOCK: "Mauvais codes de déverrouillage",
     OFFLINE: "Appareil hors ligne",
   } satisfies Record<AlertType, string>,
   source: {

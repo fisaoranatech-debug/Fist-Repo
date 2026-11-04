@@ -1,0 +1,7 @@
+{
+  "name": "retrouve-native",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Module natif Android de Retrouve : administrateur de l'appareil, alarme, commandes SMS",
+  "main": "src/index.ts"
+}

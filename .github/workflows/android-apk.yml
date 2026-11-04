@@ -1,0 +1,128 @@
+# Construit l'APK Android de Retrouve et le publie dans la Release « android-latest ».
+# Rien à installer sur un ordinateur : téléchargez retrouve.apk depuis la page Releases du dépôt.
+name: APK Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, ccr-2ae6d30e-82ueii]
+    paths:
+      - "apps/mobile/**"
+      - "packages/shared/**"
+      - ".github/workflows/android-apk.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      EXPO_PUBLIC_API_URL: https://retrouve-roan.vercel.app
+      ANDROID_VERSION_CODE: ${{ github.run_number }}
+      NODE_OPTIONS: --max-old-space-size=6144
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Vérifier le code (types et tests)
+        run: |
+          npx tsc --noEmit
+          npx vitest run
+
+      - name: Générer le projet Android
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Signature personnalisée (si les secrets existent)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
+            {
+              echo 'android.signingConfigs.create("custom") {'
+              echo '  storeFile file("release.keystore")'
+              echo '  storePassword System.getenv("KEYSTORE_PASSWORD")'
+              echo '  keyAlias System.getenv("KEY_ALIAS")'
+              echo '  keyPassword System.getenv("KEY_PASSWORD")'
+              echo '}'
+              echo 'android.buildTypes.release.signingConfig android.signingConfigs.custom'
+            } >> android/app/build.gradle
+            echo "Signature avec la clé personnelle."
+          else
+            echo "Pas de clé personnelle : signature avec la clé fixe du modèle Expo (mises à jour compatibles entre elles)."
+          fi
+
+      - name: Construire l'APK
+        working-directory: apps/mobile/android
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+
+      - name: Préparer le fichier
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk retrouve.apk
+          ls -lh retrouve.apk
+          # Fichier lu par la mise à jour intégrée de l'application.
+          node -e '
+            const fs = require("fs"), crypto = require("crypto"), { execSync } = require("child_process");
+            const sha256 = crypto.createHash("sha256").update(fs.readFileSync("retrouve.apk")).digest("hex");
+            const notes = execSync("git log -1 --pretty=%s").toString().trim();
+            fs.writeFileSync("version.json", JSON.stringify({
+              versionCode: Number(process.env.ANDROID_VERSION_CODE),
+              notes,
+              sha256,
+              size: fs.statSync("retrouve.apk").size,
+              apkUrl: "https://github.com/" + process.env.GITHUB_REPOSITORY + "/releases/download/android-latest/retrouve.apk",
+              builtAt: new Date().toISOString(),
+            }, null, 2));
+          '
+          cat version.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: retrouve-apk
+          path: apps/mobile/retrouve.apk
+
+      - name: Publier dans la Release « android-latest »
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Application Android Retrouve, construction n°${{ github.run_number }} (${GITHUB_SHA::7}).
+          Ouvrez ce lien sur le téléphone, téléchargez retrouve.apk et installez-le (autorisez « applications inconnues » si Android le demande).
+          Serveur : $EXPO_PUBLIC_API_URL"
+          if gh release view android-latest >/dev/null 2>&1; then
+            gh release edit android-latest --notes "$NOTES" --target "$GITHUB_SHA"
+            gh release upload android-latest retrouve.apk --clobber
+          else
+            gh release create android-latest retrouve.apk --title "Retrouve pour Android" --notes "$NOTES" --target "$GITHUB_SHA" --latest
+          fi
+          # En dernier : l'application ne voit la nouvelle version qu'une fois l'APK complètement publié.
+          gh release upload android-latest version.json --clobber

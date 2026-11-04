@@ -35,6 +35,16 @@ export interface DeviceDTO {
   lostMessage: string | null;
   capabilities: string[];
   hasSmsSecret: boolean;
+  /** true si l'appareil a envoyé un jeton push (réveil instantané possible). */
+  instantWakeUp: boolean;
+  /** Intervalle normal d'envoi de la position (secondes). */
+  trackingIntervalSec: number;
+  /** Suivi en direct en cours (positions toutes les 15 s). */
+  live: boolean;
+  /** SMS d'urgence automatique activé. */
+  smsAlerts: boolean;
+  /** Code de déblocage du mode perdu (propriétaire et contrôleurs uniquement). */
+  unlockCode: string | null;
   /** Rôle de l'utilisateur courant sur cet appareil. */
   access: "OWNER" | ShareRole;
   ownerName: string;
@@ -114,7 +124,23 @@ export interface AgentState {
   pendingCommands: number;
   /** Intervalle conseillé entre deux positions, en secondes. */
   intervalSec: number;
+  /**
+   * Empreinte SHA-256 de « deviceId:code » du code de déblocage (mode perdu).
+   * Si présente, le téléphone affiche l'écran de blocage Retrouve.
+   */
+  lockHash: string | null;
+  /** SMS d'urgence automatique activé par le propriétaire. */
+  smsAlerts: boolean;
 }
 
+/** Au-delà de cette précision (mètres), une position est considérée comme approximative. */
+export const PRECISE_ACCURACY_M = 150;
+
 /** Intervalles d'envoi des positions. */
-export const TRACKING_INTERVAL_SEC = { normal: 300, lost: 60 } as const;
+export const TRACKING_INTERVAL_SEC = { normal: 300, lost: 60, live: 15 } as const;
+
+/** Rythmes d'envoi de la position proposés au propriétaire (secondes). */
+export const TRACKING_INTERVAL_CHOICES = [60, 120, 300, 600, 900] as const;
+
+/** Durée du suivi en direct après la dernière consultation de la fiche (ms). */
+export const LIVE_WINDOW_MS = 2 * 60_000;

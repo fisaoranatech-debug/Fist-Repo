@@ -1,0 +1,87 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.RECEIVE_SMS" />
+  <uses-permission android:name="android.permission.SEND_SMS" />
+  <!-- Facultatif : reconnaître le changement de carte SIM même chez le même opérateur. -->
+  <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+  <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+  <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+  <uses-permission android:name="android.permission.WAKE_LOCK" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <!-- Écran de blocage du mode perdu (par-dessus les autres applications). -->
+  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+  <!-- Mise à jour intégrée : installer la nouvelle version téléchargée. -->
+  <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+  <!-- Mode perdu : photo de la personne qui tente de déverrouiller, écran sur le verrouillage. -->
+  <uses-permission android:name="android.permission.CAMERA" />
+  <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+  <uses-feature android:name="android.hardware.camera.front" android:required="false" />
+
+  <application>
+    <!-- Administrateur de l'appareil : verrouiller, effacer, compter les mauvais codes. -->
+    <receiver
+      android:name="mg.retrouve.nativemodule.AdminReceiver"
+      android:exported="true"
+      android:label="Retrouve"
+      android:description="@string/retrouve_admin_description"
+      android:permission="android.permission.BIND_DEVICE_ADMIN">
+      <meta-data android:name="android.app.device_admin" android:resource="@xml/retrouve_device_admin" />
+      <intent-filter>
+        <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+        <action android:name="android.app.action.ACTION_PASSWORD_FAILED" />
+        <action android:name="android.app.action.ACTION_PASSWORD_SUCCEEDED" />
+      </intent-filter>
+    </receiver>
+
+    <!-- Agent natif : positions et commandes, même application fermée. -->
+    <service
+      android:name="mg.retrouve.nativemodule.AgentService"
+      android:exported="false"
+      android:foregroundServiceType="location"
+      android:stopWithTask="false" />
+
+    <!-- Écran du mode perdu par-dessus l'écran de verrouillage. -->
+    <activity
+      android:name="mg.retrouve.nativemodule.LostActivity"
+      android:exported="false"
+      android:excludeFromRecents="true"
+      android:launchMode="singleTask"
+      android:taskAffinity="mg.retrouve.lost"
+      android:showWhenLocked="true"
+      android:turnScreenOn="true"
+      android:screenOrientation="portrait"
+      android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen" />
+
+    <!-- Mise à jour intégrée : partage de l'APK téléchargé avec l'installateur. -->
+    <provider
+      android:name="mg.retrouve.nativemodule.UpdateFileProvider"
+      android:authorities="${applicationId}.retrouve.updates"
+      android:exported="false"
+      android:grantUriPermissions="true" />
+
+    <!-- Relance après redémarrage du téléphone ou mise à jour de l'application. -->
+    <receiver
+      android:name="mg.retrouve.nativemodule.BootReceiver"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+        <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+      </intent-filter>
+    </receiver>
+
+    <!-- Commandes par SMS (LOCATE / RING suivi du code secret). -->
+    <receiver
+      android:name="mg.retrouve.nativemodule.SmsReceiver"
+      android:exported="true"
+      android:permission="android.permission.BROADCAST_SMS">
+      <intent-filter android:priority="999">
+        <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+      </intent-filter>
+    </receiver>
+  </application>
+</manifest>
