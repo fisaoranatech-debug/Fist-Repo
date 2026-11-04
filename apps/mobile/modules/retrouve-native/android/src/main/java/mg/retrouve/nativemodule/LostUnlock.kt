@@ -2,6 +2,7 @@ package mg.retrouve.nativemodule
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import org.json.JSONObject
 import java.security.MessageDigest
 import kotlin.concurrent.thread
@@ -51,7 +52,16 @@ internal object LostUnlock {
    */
   fun onWrongAttempt(context: Context, source: String) {
     val attempts = recordWrongAttempt(context)
-    showLostScreen(context, capture = true, attempts = attempts, source = source)
+    if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
+      // Android 10 et moins : la caméra est permise tant que le service Retrouve tourne,
+      // on prend la photo directement (même si le fabricant bloque l'ouverture de l'écran).
+      IntruderCamera.capture(context.applicationContext) { bytes, error ->
+        IntruderReporter.report(context, bytes, attempts, source, error)
+      }
+      showLostScreen(context)
+    } else {
+      showLostScreen(context, capture = true, attempts = attempts, source = source)
+    }
   }
 
   fun showLostScreen(context: Context, capture: Boolean = false, attempts: Int = 0, source: String = "") {
@@ -64,7 +74,7 @@ internal object LostUnlock {
       context.startActivity(intent)
     } catch (_: Exception) {
       // Démarrage refusé par Android : on envoie au moins l'alerte sans photo.
-      if (capture) IntruderReporter.report(context, null, attempts, source)
+      if (capture) IntruderReporter.report(context, null, attempts, source, "screen-blocked")
     }
   }
 }

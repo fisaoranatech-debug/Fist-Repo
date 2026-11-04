@@ -75,7 +75,7 @@ class LostActivity : Activity() {
   }
 
   private fun photo(attempts: Int, source: String) {
-    IntruderCamera.capture(this) { bytes -> IntruderReporter.report(this, bytes, attempts, source) }
+    IntruderCamera.capture(this) { bytes, error -> IntruderReporter.report(this, bytes, attempts, source, error) }
   }
 
   private fun submit(code: String) {

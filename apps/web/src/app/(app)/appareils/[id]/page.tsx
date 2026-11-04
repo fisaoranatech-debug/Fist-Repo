@@ -87,6 +87,9 @@ export default function DevicePage() {
               <BatteryBadge level={device.battery} charging={device.charging} />
               {device.carrierName && <Badge>📶 {device.carrierName}</Badge>}
               {device.live && <Badge tone="red">🔴 En direct (toutes les 15 s)</Badge>}
+              {device.capabilities.includes("nativeAgent") && !device.capabilities.includes("intruderPhoto") && (
+                <Badge tone="amber">📷 Photo de l&apos;intrus : appareil photo non autorisé</Badge>
+              )}
               {device.capabilities.includes("bgRestricted") && (
                 <Badge tone="red">⚠️ Restreinte par Android (batterie)</Badge>
               )}

@@ -29,11 +29,18 @@ internal object IntruderCamera {
   fun hasPermission(context: Context) =
     context.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
 
-  /** Prend une photo JPEG (≈ 640×480) et la renvoie, ou null en cas d'échec (délai max 7 s). */
+  /**
+   * Prend une photo JPEG et la renvoie, ou null avec la raison de l'échec (délai max 8 s).
+   * Raisons : permission, busy, no-camera, open-error-N, disconnected, config-failed, timeout, exception.
+   */
   @Suppress("MissingPermission", "DEPRECATION")
-  fun capture(context: Context, callback: (ByteArray?) -> Unit) {
-    if (!hasPermission(context) || busy) {
-      callback(null)
+  fun capture(context: Context, callback: (ByteArray?, String?) -> Unit) {
+    if (!hasPermission(context)) {
+      callback(null, "permission")
+      return
+    }
+    if (busy) {
+      callback(null, "busy")
       return
     }
     busy = true
@@ -42,7 +49,7 @@ internal object IntruderCamera {
     var device: CameraDevice? = null
     var reader: ImageReader? = null
     var done = false
-    fun finish(bytes: ByteArray?) {
+    fun finish(bytes: ByteArray?, reason: String? = null) {
       synchronized(this) {
         if (done) return
         done = true
@@ -51,14 +58,14 @@ internal object IntruderCamera {
       try { reader?.close() } catch (_: Exception) {}
       ht.quitSafely()
       busy = false
-      callback(bytes)
+      callback(bytes, if (bytes == null) reason ?: "unknown" else null)
     }
-    handler.postDelayed({ finish(null) }, 7_000)
+    handler.postDelayed({ finish(null, "timeout") }, 8_000)
     try {
       val cm = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
       val id = cm.cameraIdList.firstOrNull {
         cm.getCameraCharacteristics(it).get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT
-      } ?: cm.cameraIdList.firstOrNull() ?: return finish(null)
+      } ?: cm.cameraIdList.firstOrNull() ?: return finish(null, "no-camera")
       val chars = cm.getCameraCharacteristics(id)
       val sizes = chars.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)?.getOutputSizes(ImageFormat.JPEG)
       val size = sizes?.filter { it.width <= 1280 }?.maxByOrNull { it.width * it.height }
@@ -96,27 +103,27 @@ internal object IntruderCamera {
                         set(CaptureRequest.JPEG_QUALITY, 80.toByte())
                       }
                       session.capture(still.build(), null, handler)
-                    } catch (_: Exception) {
-                      finish(null)
+                    } catch (e: Exception) {
+                      finish(null, "capture-" + e.javaClass.simpleName)
                     }
                   }, 1_200)
-                } catch (_: Exception) {
-                  finish(null)
+                } catch (e: Exception) {
+                  finish(null, "preview-" + e.javaClass.simpleName)
                 }
               }
 
-              override fun onConfigureFailed(session: CameraCaptureSession) = finish(null)
+              override fun onConfigureFailed(session: CameraCaptureSession) = finish(null, "config-failed")
             }, handler)
-          } catch (_: Exception) {
-            finish(null)
+          } catch (e: Exception) {
+            finish(null, "session-" + e.javaClass.simpleName)
           }
         }
 
-        override fun onDisconnected(cam: CameraDevice) = finish(null)
-        override fun onError(cam: CameraDevice, error: Int) = finish(null)
+        override fun onDisconnected(cam: CameraDevice) = finish(null, "disconnected")
+        override fun onError(cam: CameraDevice, error: Int) = finish(null, "open-error-$error")
       }, handler)
-    } catch (_: Exception) {
-      finish(null)
+    } catch (e: Exception) {
+      finish(null, "open-" + e.javaClass.simpleName)
     }
   }
 }
@@ -125,10 +132,11 @@ internal object IntruderCamera {
 internal object IntruderReporter {
   private fun pendingDir(context: Context) = File(context.filesDir, "pending_alerts").apply { mkdirs() }
 
-  fun report(context: Context, photo: ByteArray?, attempts: Int, source: String) {
+  fun report(context: Context, photo: ByteArray?, attempts: Int, source: String, photoError: String? = null) {
     val ctx = context.applicationContext
     thread {
       val data = JSONObject().put("failedAttempts", attempts).put("source", source)
+      if (photo == null && photoError != null) data.put("photoError", photoError.take(60))
       val loc = LocationHelper.currentBlocking(ctx, 12_000)
       if (loc != null) {
         data.put("lat", loc.latitude).put("lng", loc.longitude)

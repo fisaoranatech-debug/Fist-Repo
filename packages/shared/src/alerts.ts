@@ -9,6 +9,16 @@ export const ALERT_ICONS: Record<AlertType, string> = {
   OFFLINE: "📴",
 };
 
+/** Raison d'échec de la photo de l'intrus, en français. */
+export function photoErrorLabel(code: string): string {
+  if (code === "permission") return "l'appareil photo n'est pas autorisé pour Retrouve sur le téléphone (Retrouve → Autorisations → Photo de l'intrus)";
+  if (code === "screen-blocked") return "Android a empêché l'affichage de l'écran Retrouve (autorisez « Afficher par-dessus d'autres applications »)";
+  if (code === "timeout") return "l'appareil photo n'a pas répondu à temps";
+  if (code === "busy") return "une autre photo était déjà en cours";
+  if (code === "no-camera") return "aucun appareil photo trouvé";
+  return `erreur technique (${code})`;
+}
+
 function formatDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
@@ -27,8 +37,10 @@ export function describeAlert(type: AlertType, data: Record<string, unknown> | n
       return `L'appareil est sorti de la zone « ${d.zone ?? ""} ».`;
     case "INTRUDER_PHOTO":
       return `Photo de la personne qui tente de déverrouiller le téléphone (mauvais code n°${d.failedAttempts ?? "?"}${d.source === "lockScreen" ? ", code Retrouve" : d.source === "devicePin" ? ", code du téléphone" : ""}).`;
-    case "FAILED_UNLOCK":
-      return `${d.failedAttempts ?? "Plusieurs"} mauvais codes de déverrouillage. Quelqu'un essaie peut-être d'utiliser l'appareil.`;
+    case "FAILED_UNLOCK": {
+      const base = `${d.failedAttempts ?? "Plusieurs"} mauvais codes de déverrouillage. Quelqu'un essaie peut-être d'utiliser l'appareil.`;
+      return d.photoError ? `${base} Photo impossible : ${photoErrorLabel(String(d.photoError))}.` : base;
+    }
     case "OFFLINE":
       return `Aucune nouvelle depuis ${d.lastSeenAt ? formatDate(String(d.lastSeenAt)) : "plus de 24 h"}. Téléphone éteint, sans réseau ou application arrêtée.`;
   }
